@@ -1,668 +1,747 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BEACON - Behavioral Educational Analysis and Classroom Observation Notebook</title>
-<style>
-  :root {
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
-    --secondary-color: #64748b;
-    --success-color: #059669;
-    --danger-color: #dc2626;
-    --warning-color: #d97706;
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-tertiary: #e2e8f0;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #cbd5e1;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 20px;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    color: var(--text-primary);
-    min-height: 100vh;
-  }
-
-  .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    background: var(--bg-primary);
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-    overflow: hidden;
-  }
-
-  .header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #1e40af 100%);
-    color: white;
-    padding: 24px 32px;
-    text-align: center;
-  }
-
-  .header h1 {
-    margin: 0 0 8px 0;
-    font-size: 2.5rem;
-    font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    letter-spacing: 2px;
-  }
-
-  .header p {
-    margin: 8px 0;
-    opacity: 0.95;
-    font-size: 1rem;
-  }
-
-  .header p:first-of-type {
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
-  .content {
-    padding: 32px;
-  }
-
-  .section {
-    margin-bottom: 32px;
-  }
-
-  .section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-primary);
-    border-bottom: 2px solid var(--bg-tertiary);
-    padding-bottom: 8px;
-  }
-
-  .file-input-container {
-    background: var(--bg-secondary);
-    border: 2px dashed var(--border-color);
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    transition: all 0.3s ease;
-  }
-
-  .file-input-container:hover {
-    border-color: var(--primary-color);
-    background: #eff6ff;
-  }
-
-  .file-input {
-    display: none;
-  }
-
-  .file-input-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: var(--primary-color);
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.3s ease;
-  }
-
-  .file-input-label:hover {
-    background: var(--primary-hover);
-  }
-
-  .video-container {
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: var(--shadow-md);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .video-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 16px;
-    padding: 16px;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-  }
-
-  .video-size-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .video-size-label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-  }
-
-  .size-slider {
-    width: 150px;
-    height: 6px;
-    background: var(--bg-tertiary);
-    border-radius: 3px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  .size-slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--primary-color);
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  .size-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: var(--primary-color);
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-  }
-
-  #player {
-    width: 100%;
-    height: auto;
-    display: block;
-    transition: all 0.3s ease;
-    background: transparent;
-  }
-
-  .controls-frame {
-    background: var(--bg-primary);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: var(--shadow-md);
-    transition: all 0.3s ease;
-  }
-
-  .controls-frame.detached {
-    position: fixed;
-    z-index: 1000;
-    min-width: 300px;
-    max-width: 600px;
-    width: 400px;
-    min-height: 200px;
-    resize: both;
-    overflow: auto;
-    background: var(--bg-primary);
-    border: 2px solid var(--primary-color);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .video-frame {
-    background: var(--bg-primary);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: var(--shadow-md);
-    transition: all 0.3s ease;
-  }
-
-  .video-frame.detached {
-    position: fixed;
-    z-index: 999;
-    min-width: 300px;
-    max-width: 800px;
-    width: 600px;
-    min-height: 200px;
-    resize: both;
-    overflow: auto;
-    background: var(--bg-primary);
-    border: 2px solid var(--success-color);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .frame-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .frame-title {
-    font-weight: 600;
-    color: var(--text-primary);
-    flex: 1;
-  }
-
-  .detach-btn {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  .detach-btn:hover {
-    background: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-  }
-
-  .detach-btn.video {
-    background: var(--success-color);
-    color: white;
-    border-color: var(--success-color);
-  }
-
-  .detach-btn.video:hover {
-    background: #047857;
-  }
-
-  .drag-handle {
-    cursor: move;
-    padding: 4px 8px;
-    margin-right: 8px;
-    background: var(--bg-tertiary);
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    user-select: none;
-  }
-
-  .drag-handle:hover {
-    background: var(--primary-color);
-    color: white;
-  }
-
-  .detached .drag-handle {
-    display: inline-block;
-  }
-
-  .attached .drag-handle {
-    display: none;
-  }
-
-  .controls-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin: 24px 0;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-  }
-
-  .btn-primary {
-    background: var(--primary-color);
-    color: white;
-  }
-
-  .btn-primary:hover {
-    background: var(--primary-hover);
-  }
-
-  .btn-secondary {
-    background: var(--secondary-color);
-    color: white;
-  }
-
-  .btn-secondary:hover {
-    background: #475569;
-  }
-
-  .btn-success {
-    background: var(--success-color);
-    color: white;
-  }
-
-  .btn-success:hover {
-    background: #047857;
-  }
-
-  .btn-warning {
-    background: var(--warning-color);
-    color: white;
-  }
-
-  .btn-warning:hover {
-    background: #b45309;
-  }
-
-  .events-container {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 20px;
-  }
-
-  .event-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding: 16px;
-    background: var(--bg-primary);
-    border-radius: 8px;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
-  }
-
-  .event-row:hover {
-    box-shadow: var(--shadow-md);
-  }
-
-  .keybtn {
-    min-width: 50px;
-    height: 40px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .keybtn:hover {
-    background: var(--primary-hover);
-    transform: scale(1.05);
-  }
-
-  .keybtn:active {
-    transform: scale(0.95);
-  }
-
-  .event-label {
-    min-width: 160px;
-    font-weight: 600;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-  }
-
-  .event-input {
-    flex: 1;
-    height: 40px;
-    padding: 8px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-  }
-
-  .event-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
-
-  .type-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .type-badge.ec {
-    background: rgba(59, 130, 246, 0.1);
-    color: #1d4ed8;
-  }
-
-  .type-badge.de {
-    background: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
-  }
-
-  #observationChart {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    display: block;
-    margin: 24px auto;
-    box-shadow: var(--shadow-md);
-    background: var(--bg-primary);
-  }
-
-  .analysis-container {
-    margin-top: 32px;
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    padding: 24px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--bg-primary);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
-
-  th {
-    background: var(--primary-color);
-    color: white;
-    font-weight: 600;
-    padding: 16px;
-    text-align: left;
-    font-size: 0.9rem;
-  }
-
-  td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--bg-tertiary);
-    font-size: 0.9rem;
-  }
-
-  tr:hover td {
-    background: rgba(37, 99, 235, 0.02);
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 48px;
-    color: var(--text-secondary);
-  }
-
-  .empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 16px;
-    opacity: 0.3;
-  }
-
-  .status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin-top: 16px;
-  }
-
-  .status-indicator.recording {
-    background: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
-  }
-
-  .status-indicator.ready {
-    background: rgba(34, 197, 94, 0.1);
-    color: #16a34a;
-  }
-
-  .pulse {
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  .copyright-footer {
-    width: 100%;
-    text-align: center;
-    padding: 20px;
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 12px;
-    border-top: 2px solid #cbd5e1;
-    margin-top: 40px;
-  }
-
-  @media (max-width: 768px) {
-    body { padding: 10px; }
-    .content { padding: 20px; }
-    .controls-grid { grid-template-columns: 1fr; }
-    .event-row {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-    }
-    .event-label { min-width: auto; }
-  }
-</style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>BEACON</h1>
-      <p><strong>Behavioral Educational Analysis &amp; Classroom Observation Notebook</strong></p>
-      <p>Advanced behavioral analysis with event counting and duration tracking</p>
-      <p style="font-size: 0.7rem; opacity: 0.7; margin-top: 10px;">&copy; 2025 Georgios Hoplaros, PhD</p>
-    </div>
-
-    <div class="content">
-      <div class="section">
-        <div class="section-title">Media File</div>
-        <div class="file-input-container">
-          <input type="file" id="fileInput" class="file-input" accept="video/*,audio/*" />
-          <label for="fileInput" class="file-input-label">
-            📁 Choose Video or Audio File
-          </label>
-          <p style="margin: 12px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">
-            Supports MP4, MP3, WAV, and other common formats
-          </p>
-        </div>
-        
-        <div id="mediaContainer" style="display: none;">
-          <div id="videoFrame" class="video-frame attached">
-            <div class="frame-header">
-              <span class="drag-handle">⋮⋮</span>
-              <span class="frame-title">Video Player</span>
-              <button id="detachVideoBtn" class="detach-btn video">🎬 Detach Video</button>
-            </div>
-            <div class="video-container">
-              <video id="player" controls></video>
-            </div>
-            <div class="video-controls">
-              <div class="video-size-controls">
-                <span class="video-size-label">Video Size:</span>
-                <input type="range" id="sizeSlider" class="size-slider" min="300" max="1200" value="800" step="50">
-                <span id="sizeDisplay" class="video-size-label">800px</span>
-              </div>
-              <div id="statusIndicator" class="status-indicator ready">
-                <span>●</span> Ready to track
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Controls</div>
-        <div class="controls-grid">
-          <button id="createEC" class="btn btn-primary">➕ Create Event Count</button>
-          <button id="createDE" class="btn btn-secondary">⏱️ Create Duration Event</button>
-          <button id="showGraph" class="btn btn-success">📊 Show Observation Graph</button>
-          <button id="exportSVG" class="btn btn-warning">⬇️ Export Graph as SVG</button>
-          <button id="saveData" class="btn btn-secondary">💾 Save Data</button>
-          <button id="loadData" class="btn btn-secondary">📂 Load Data</button>
-          <button id="analysisBtn" class="btn btn-primary">📈 Data Analysis</button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Event Configurations</div>
-        <div id="controlsFrame" class="controls-frame attached">
-          <div class="frame-header">
-            <span class="drag-handle">⋮⋮</span>
-            <span class="frame-title">Event Controls</span>
-            <button id="detachBtn" class="detach-btn">📌 Detach Controls</button>
-          </div>
-          <div class="events-container">
-            <div id="eventsContainer">
-              <div class="empty-state">
-                <div class="empty-state-icon">🎯</div>
-                <p><strong>No events configured yet</strong></p>
-                <p>Click "Create Event Count" or "Create Duration Event" to start tracking behaviors</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="analysisContainer" class="analysis-container" style="display: none;"></div>
-      <canvas id="observationChart" width="1000" height="500" style="display: none;"></canvas>
-    </div>
-  </div>
-
-  <!-- Copyright footer at the absolute bottom of the page -->
-  <div class="copyright-footer">
-    &copy; 2025 Georgios Hoplaros, PhD
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-  <script>
-  // Application expiration check
-  function checkExpiration() {
-    const expirationDate = new Date('2025-12-31');
-    const currentDate = new Date();
-    
-    if (currentDate > expirationDate) {
-      document.body.innerHTML = `
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>
+			BEACON - Behavioral Educational Analysis and Classroom Observation
+			Notebook
+		</title>
+		<style>
+			:root {
+				--primary-color: #2563eb;
+				--primary-hover: #1d4ed8;
+				--secondary-color: #64748b;
+				--success-color: #059669;
+				--danger-color: #dc2626;
+				--warning-color: #d97706;
+				--bg-primary: #ffffff;
+				--bg-secondary: #f8fafc;
+				--bg-tertiary: #e2e8f0;
+				--text-primary: #1e293b;
+				--text-secondary: #64748b;
+				--border-color: #cbd5e1;
+				--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+				--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+					0 2px 4px -2px rgb(0 0 0 / 0.1);
+				--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+					0 4px 6px -4px rgb(0 0 0 / 0.1);
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					"Helvetica Neue", Arial, sans-serif;
+				line-height: 1.6;
+				margin: 0;
+				padding: 20px;
+				background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+				color: var(--text-primary);
+				min-height: 100vh;
+			}
+
+			.container {
+				max-width: 1400px;
+				margin: 0 auto;
+				background: var(--bg-primary);
+				border-radius: 16px;
+				box-shadow: var(--shadow-lg);
+				overflow: hidden;
+			}
+
+			.header {
+				background: linear-gradient(
+					135deg,
+					var(--primary-color) 0%,
+					#1e40af 100%
+				);
+				color: white;
+				padding: 24px 32px;
+				text-align: center;
+			}
+
+			.header h1 {
+				margin: 0 0 8px 0;
+				font-size: 2.5rem;
+				font-weight: 700;
+				text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+				letter-spacing: 2px;
+			}
+
+			.header p {
+				margin: 8px 0;
+				opacity: 0.95;
+				font-size: 1rem;
+			}
+
+			.header p:first-of-type {
+				font-size: 1.1rem;
+				font-weight: 600;
+			}
+
+			.content {
+				padding: 32px;
+			}
+
+			.section {
+				margin-bottom: 32px;
+			}
+
+			.section-title {
+				font-size: 1.25rem;
+				font-weight: 600;
+				margin-bottom: 16px;
+				color: var(--text-primary);
+				border-bottom: 2px solid var(--bg-tertiary);
+				padding-bottom: 8px;
+			}
+
+			.file-input-container {
+				background: var(--bg-secondary);
+				border: 2px dashed var(--border-color);
+				border-radius: 12px;
+				padding: 24px;
+				text-align: center;
+				transition: all 0.3s ease;
+			}
+
+			.file-input-container:hover {
+				border-color: var(--primary-color);
+				background: #eff6ff;
+			}
+
+			.file-input {
+				display: none;
+			}
+
+			.file-input-label {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 12px 24px;
+				background: var(--primary-color);
+				color: white;
+				border-radius: 8px;
+				cursor: pointer;
+				font-weight: 500;
+				transition: background 0.3s ease;
+			}
+
+			.file-input-label:hover {
+				background: var(--primary-hover);
+			}
+
+			.video-container {
+				border-radius: 12px;
+				overflow: hidden;
+				position: relative;
+				box-shadow: var(--shadow-md);
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+
+			.video-controls {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				margin-top: 16px;
+				padding: 16px;
+				background: var(--bg-secondary);
+				border-radius: 8px;
+			}
+
+			.video-size-controls {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.video-size-label {
+				font-size: 0.9rem;
+				color: var(--text-secondary);
+				font-weight: 500;
+			}
+
+			.size-slider {
+				width: 150px;
+				height: 6px;
+				background: var(--bg-tertiary);
+				border-radius: 3px;
+				outline: none;
+				cursor: pointer;
+			}
+
+			.size-slider::-webkit-slider-thumb {
+				appearance: none;
+				width: 20px;
+				height: 20px;
+				background: var(--primary-color);
+				border-radius: 50%;
+				cursor: pointer;
+			}
+
+			.size-slider::-moz-range-thumb {
+				width: 20px;
+				height: 20px;
+				background: var(--primary-color);
+				border-radius: 50%;
+				cursor: pointer;
+				border: none;
+			}
+
+			#player {
+				width: 100%;
+				height: auto;
+				display: block;
+				transition: all 0.3s ease;
+				background: transparent;
+			}
+
+			.controls-frame {
+				background: var(--bg-primary);
+				border: 2px solid var(--border-color);
+				border-radius: 12px;
+				padding: 20px;
+				box-shadow: var(--shadow-md);
+				transition: all 0.3s ease;
+			}
+
+			.controls-frame.detached {
+				position: fixed;
+				z-index: 1000;
+				min-width: 300px;
+				max-width: 600px;
+				width: 400px;
+				min-height: 200px;
+				resize: both;
+				overflow: auto;
+				background: var(--bg-primary);
+				border: 2px solid var(--primary-color);
+				box-shadow: var(--shadow-lg);
+			}
+
+			.video-frame {
+				background: var(--bg-primary);
+				border: 2px solid var(--border-color);
+				border-radius: 12px;
+				padding: 20px;
+				box-shadow: var(--shadow-md);
+				transition: all 0.3s ease;
+			}
+
+			.video-frame.detached {
+				position: fixed;
+				z-index: 999;
+				min-width: 300px;
+				max-width: 800px;
+				width: 600px;
+				min-height: 200px;
+				resize: both;
+				overflow: auto;
+				background: var(--bg-primary);
+				border: 2px solid var(--success-color);
+				box-shadow: var(--shadow-lg);
+			}
+
+			.frame-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 16px;
+				padding-bottom: 12px;
+				border-bottom: 1px solid var(--border-color);
+			}
+
+			.frame-title {
+				font-weight: 600;
+				color: var(--text-primary);
+				flex: 1;
+			}
+
+			.detach-btn {
+				padding: 6px 12px;
+				font-size: 0.8rem;
+				border: 1px solid var(--border-color);
+				background: var(--bg-secondary);
+				border-radius: 6px;
+				cursor: pointer;
+				transition: all 0.3s ease;
+			}
+
+			.detach-btn:hover {
+				background: var(--primary-color);
+				color: white;
+				border-color: var(--primary-color);
+			}
+
+			.detach-btn.video {
+				background: var(--success-color);
+				color: white;
+				border-color: var(--success-color);
+			}
+
+			.detach-btn.video:hover {
+				background: #047857;
+			}
+
+			.drag-handle {
+				cursor: move;
+				padding: 4px 8px;
+				margin-right: 8px;
+				background: var(--bg-tertiary);
+				border-radius: 4px;
+				font-size: 0.8rem;
+				color: var(--text-secondary);
+				user-select: none;
+			}
+
+			.drag-handle:hover {
+				background: var(--primary-color);
+				color: white;
+			}
+
+			.detached .drag-handle {
+				display: inline-block;
+			}
+
+			.attached .drag-handle {
+				display: none;
+			}
+
+			.controls-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 16px;
+				margin: 24px 0;
+			}
+
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				padding: 12px 20px;
+				border: none;
+				border-radius: 8px;
+				font-size: 0.95rem;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				text-decoration: none;
+				box-shadow: var(--shadow-sm);
+			}
+
+			.btn:hover {
+				transform: translateY(-1px);
+				box-shadow: var(--shadow-md);
+			}
+
+			.btn-primary {
+				background: var(--primary-color);
+				color: white;
+			}
+
+			.btn-primary:hover {
+				background: var(--primary-hover);
+			}
+
+			.btn-secondary {
+				background: var(--secondary-color);
+				color: white;
+			}
+
+			.btn-secondary:hover {
+				background: #475569;
+			}
+
+			.btn-success {
+				background: var(--success-color);
+				color: white;
+			}
+
+			.btn-success:hover {
+				background: #047857;
+			}
+
+			.btn-warning {
+				background: var(--warning-color);
+				color: white;
+			}
+
+			.btn-warning:hover {
+				background: #b45309;
+			}
+
+			.events-container {
+				background: var(--bg-secondary);
+				border-radius: 8px;
+				padding: 20px;
+			}
+
+			.event-row {
+				display: flex;
+				align-items: center;
+				gap: 16px;
+				margin-bottom: 16px;
+				padding: 16px;
+				background: var(--bg-primary);
+				border-radius: 8px;
+				box-shadow: var(--shadow-sm);
+				transition: all 0.3s ease;
+			}
+
+			.event-row:hover {
+				box-shadow: var(--shadow-md);
+			}
+
+			.keybtn {
+				min-width: 50px;
+				height: 40px;
+				font-weight: 700;
+				font-size: 0.9rem;
+				background: var(--primary-color);
+				color: white;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.keybtn:hover {
+				background: var(--primary-hover);
+				transform: scale(1.05);
+			}
+
+			.keybtn:active {
+				transform: scale(0.95);
+			}
+
+			.event-label {
+				min-width: 160px;
+				font-weight: 600;
+				color: var(--text-primary);
+				font-size: 0.95rem;
+			}
+
+			.event-input {
+				flex: 1;
+				height: 40px;
+				padding: 8px 16px;
+				border: 1px solid var(--border-color);
+				border-radius: 6px;
+				font-size: 0.9rem;
+				transition: all 0.3s ease;
+			}
+
+			.event-input:focus {
+				outline: none;
+				border-color: var(--primary-color);
+				box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+			}
+
+			.type-badge {
+				padding: 4px 12px;
+				border-radius: 20px;
+				font-size: 0.8rem;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+
+			.type-badge.ec {
+				background: rgba(59, 130, 246, 0.1);
+				color: #1d4ed8;
+			}
+
+			.type-badge.de {
+				background: rgba(239, 68, 68, 0.1);
+				color: #dc2626;
+			}
+
+			#observationChart {
+				border: 1px solid var(--border-color);
+				border-radius: 12px;
+				display: block;
+				margin: 24px auto;
+				box-shadow: var(--shadow-md);
+				background: var(--bg-primary);
+			}
+
+			.analysis-container {
+				margin-top: 32px;
+				background: var(--bg-secondary);
+				border-radius: 12px;
+				padding: 24px;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				background: var(--bg-primary);
+				border-radius: 8px;
+				overflow: hidden;
+				box-shadow: var(--shadow-sm);
+			}
+
+			th {
+				background: var(--primary-color);
+				color: white;
+				font-weight: 600;
+				padding: 16px;
+				text-align: left;
+				font-size: 0.9rem;
+			}
+
+			td {
+				padding: 14px 16px;
+				border-bottom: 1px solid var(--bg-tertiary);
+				font-size: 0.9rem;
+			}
+
+			tr:hover td {
+				background: rgba(37, 99, 235, 0.02);
+			}
+
+			.empty-state {
+				text-align: center;
+				padding: 48px;
+				color: var(--text-secondary);
+			}
+
+			.empty-state-icon {
+				font-size: 3rem;
+				margin-bottom: 16px;
+				opacity: 0.3;
+			}
+
+			.status-indicator {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 16px;
+				border-radius: 20px;
+				font-size: 0.85rem;
+				font-weight: 500;
+				margin-top: 16px;
+			}
+
+			.status-indicator.recording {
+				background: rgba(239, 68, 68, 0.1);
+				color: #dc2626;
+			}
+
+			.status-indicator.ready {
+				background: rgba(34, 197, 94, 0.1);
+				color: #16a34a;
+			}
+
+			.pulse {
+				animation: pulse 2s infinite;
+			}
+
+			@keyframes pulse {
+				0%,
+				100% {
+					opacity: 1;
+				}
+				50% {
+					opacity: 0.5;
+				}
+			}
+
+			.copyright-footer {
+				width: 100%;
+				text-align: center;
+				padding: 20px;
+				background: #f1f5f9;
+				color: #475569;
+				font-size: 12px;
+				border-top: 2px solid #cbd5e1;
+				margin-top: 40px;
+			}
+
+			@media (max-width: 768px) {
+				body {
+					padding: 10px;
+				}
+				.content {
+					padding: 20px;
+				}
+				.controls-grid {
+					grid-template-columns: 1fr;
+				}
+				.event-row {
+					flex-direction: column;
+					align-items: stretch;
+					gap: 12px;
+				}
+				.event-label {
+					min-width: auto;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>BEACON</h1>
+				<p>
+					<strong
+						>Behavioral Educational Analysis &amp; Classroom Observation
+						Notebook</strong
+					>
+				</p>
+				<p>
+					Advanced behavioral analysis with event counting and duration tracking
+				</p>
+				<p style="font-size: 0.7rem; opacity: 0.7; margin-top: 10px">
+					&copy; 2025 Georgios Hoplaros, PhD
+				</p>
+			</div>
+
+			<div class="content">
+				<div class="section">
+					<div class="section-title">Media File</div>
+					<div class="file-input-container">
+						<input
+							type="file"
+							id="fileInput"
+							class="file-input"
+							accept="video/*,audio/*"
+						/>
+						<label for="fileInput" class="file-input-label">
+							📁 Choose Video or Audio File
+						</label>
+						<p
+							style="
+								margin: 12px 0 0 0;
+								color: var(--text-secondary);
+								font-size: 0.9rem;
+							"
+						>
+							Supports MP4, MP3, WAV, and other common formats
+						</p>
+					</div>
+
+					<div id="mediaContainer" style="display: none">
+						<div id="videoFrame" class="video-frame attached">
+							<div class="frame-header">
+								<span class="drag-handle">⋮⋮</span>
+								<span class="frame-title">Video Player</span>
+								<button id="detachVideoBtn" class="detach-btn video">
+									🎬 Detach Video
+								</button>
+							</div>
+							<div class="video-container">
+								<video id="player" controls></video>
+							</div>
+							<div class="video-controls">
+								<div class="video-size-controls">
+									<span class="video-size-label">Video Size:</span>
+									<input
+										type="range"
+										id="sizeSlider"
+										class="size-slider"
+										min="300"
+										max="1200"
+										value="800"
+										step="50"
+									/>
+									<span id="sizeDisplay" class="video-size-label">800px</span>
+								</div>
+								<div id="statusIndicator" class="status-indicator ready">
+									<span>●</span> Ready to track
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="section">
+					<div class="section-title">Controls</div>
+					<div class="controls-grid">
+						<button id="createEC" class="btn btn-primary">
+							➕ Create Event Count
+						</button>
+						<button id="createDE" class="btn btn-secondary">
+							⏱️ Create Duration Event
+						</button>
+						<button id="showGraph" class="btn btn-success">
+							📊 Show Observation Graph
+						</button>
+						<button id="exportSVG" class="btn btn-warning">
+							⬇️ Export Graph as SVG
+						</button>
+						<button id="saveData" class="btn btn-secondary">
+							💾 Save Data
+						</button>
+						<button id="loadData" class="btn btn-secondary">
+							📂 Load Data
+						</button>
+						<button id="analysisBtn" class="btn btn-primary">
+							📈 Data Analysis
+						</button>
+					</div>
+				</div>
+
+				<div class="section">
+					<div class="section-title">Event Configurations</div>
+					<div id="controlsFrame" class="controls-frame attached">
+						<div class="frame-header">
+							<span class="drag-handle">⋮⋮</span>
+							<span class="frame-title">Event Controls</span>
+							<button id="detachBtn" class="detach-btn">
+								📌 Detach Controls
+							</button>
+						</div>
+						<div class="events-container">
+							<div id="eventsContainer">
+								<div class="empty-state">
+									<div class="empty-state-icon">🎯</div>
+									<p><strong>No events configured yet</strong></p>
+									<p>
+										Click "Create Event Count" or "Create Duration Event" to
+										start tracking behaviors
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div
+					id="analysisContainer"
+					class="analysis-container"
+					style="display: none"
+				></div>
+				<canvas
+					id="observationChart"
+					width="1000"
+					height="500"
+					style="display: none"
+				></canvas>
+			</div>
+		</div>
+
+		<!-- Copyright footer at the absolute bottom of the page -->
+		<div class="copyright-footer">&copy; 2025 Georgios Hoplaros, PhD</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+		<script>
+			// Application expiration check
+			function checkExpiration() {
+				const expirationDate = new Date("2025-12-31");
+				const currentDate = new Date();
+
+				if (currentDate > expirationDate) {
+					document.body.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           <div style="text-align: center; padding: 48px; background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); max-width: 500px;">
             <div style="font-size: 4rem; margin-bottom: 24px;">⏰</div>
@@ -679,633 +758,836 @@
           </div>
         </div>
       `;
-      return true;
-    }
-    return false;
-  }
+					return true;
+				}
+				return false;
+			}
 
-  if (checkExpiration()) {
-    // Stop execution if expired
-  } else {
-    document.addEventListener('DOMContentLoaded', function() {
-      const player = document.getElementById('player');
-      const eventsContainer = document.getElementById('eventsContainer');
-      const canvas = document.getElementById('observationChart');
-      const analysisContainer = document.getElementById('analysisContainer');
-      const mediaContainer = document.getElementById('mediaContainer');
-      const sizeSlider = document.getElementById('sizeSlider');
-      const sizeDisplay = document.getElementById('sizeDisplay');
-      const statusIndicator = document.getElementById('statusIndicator');
-      const controlsFrame = document.getElementById('controlsFrame');
-      const videoFrame = document.getElementById('videoFrame');
-      const detachBtn = document.getElementById('detachBtn');
-      const detachVideoBtn = document.getElementById('detachVideoBtn');
+			if (checkExpiration()) {
+				// Stop execution if expired
+			} else {
+				document.addEventListener("DOMContentLoaded", function () {
+					const player = document.getElementById("player");
+					const eventsContainer = document.getElementById("eventsContainer");
+					const canvas = document.getElementById("observationChart");
+					const analysisContainer =
+						document.getElementById("analysisContainer");
+					const mediaContainer = document.getElementById("mediaContainer");
+					const sizeSlider = document.getElementById("sizeSlider");
+					const sizeDisplay = document.getElementById("sizeDisplay");
+					const statusIndicator = document.getElementById("statusIndicator");
+					const controlsFrame = document.getElementById("controlsFrame");
+					const videoFrame = document.getElementById("videoFrame");
+					const detachBtn = document.getElementById("detachBtn");
+					const detachVideoBtn = document.getElementById("detachVideoBtn");
 
-      let allEvents = [];
-      let keyBindings = {};
-      let activeDurations = {};
-      let graphBars = [];
-      let ecPoints = [];
-      let isDragging = false;
-      let dragOffset = { x: 0, y: 0 };
-      let currentDragElement = null;
+					let allEvents = [];
+					let keyBindings = {};
+					let activeDurations = {};
+					let graphBars = [];
+					let ecPoints = [];
+					let isDragging = false;
+					let dragOffset = { x: 0, y: 0 };
+					let currentDragElement = null;
 
-      const originalControlsParent = controlsFrame.parentNode;
-      const originalVideoParent = videoFrame.parentNode;
+					const originalControlsParent = controlsFrame.parentNode;
+					const originalVideoParent = videoFrame.parentNode;
 
-      document.getElementById('fileInput').addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (file) {
-          player.src = URL.createObjectURL(file);
-          mediaContainer.style.display = 'block';
-          updateStatus('ready', 'Media loaded - Ready to track');
-        }
-      });
+					document
+						.getElementById("fileInput")
+						.addEventListener("change", (e) => {
+							const file = e.target.files[0];
+							if (file) {
+								player.src = URL.createObjectURL(file);
+								mediaContainer.style.display = "block";
+								updateStatus("ready", "Media loaded - Ready to track");
+							}
+						});
 
-      sizeSlider.addEventListener('input', e => {
-        const size = e.target.value;
-        player.style.maxWidth = size + 'px';
-        sizeDisplay.textContent = size + 'px';
-      });
+					sizeSlider.addEventListener("input", (e) => {
+						const size = e.target.value;
+						player.style.maxWidth = size + "px";
+						sizeDisplay.textContent = size + "px";
+					});
 
-      function updateStatus(type, message) {
-        statusIndicator.className = `status-indicator ${type}`;
-        statusIndicator.innerHTML = `<span class="${type === 'recording' ? 'pulse' : ''}">●</span> ${message}`;
-      }
+					function updateStatus(type, message) {
+						statusIndicator.className = `status-indicator ${type}`;
+						statusIndicator.innerHTML = `<span class="${
+							type === "recording" ? "pulse" : ""
+						}">●</span> ${message}`;
+					}
 
-      const fmt = s => Number(s).toFixed(2);
+					const fmt = (s) => Number(s).toFixed(2);
 
-      function clearEmptyState() {
-        const emptyState = eventsContainer.querySelector('.empty-state');
-        if (emptyState) {
-          emptyState.remove();
-        }
-      }
+					function clearEmptyState() {
+						const emptyState = eventsContainer.querySelector(".empty-state");
+						if (emptyState) {
+							emptyState.remove();
+						}
+					}
 
-      detachBtn.addEventListener('click', () => {
-        if (controlsFrame.classList.contains('detached')) {
-          controlsFrame.classList.remove('detached');
-          controlsFrame.classList.add('attached');
-          controlsFrame.style.position = '';
-          controlsFrame.style.top = '';
-          controlsFrame.style.left = '';
-          controlsFrame.style.right = '';
-          controlsFrame.style.zIndex = '';
-          controlsFrame.style.width = '';
-          controlsFrame.style.height = '';
-          detachBtn.textContent = '📌 Detach Controls';
-          originalControlsParent.appendChild(controlsFrame);
-        } else {
-          controlsFrame.classList.remove('attached');
-          controlsFrame.classList.add('detached');
-          controlsFrame.style.top = '100px';
-          controlsFrame.style.right = '20px';
-          detachBtn.textContent = '📎 Attach Controls';
-          document.body.appendChild(controlsFrame);
-        }
-      });
+					detachBtn.addEventListener("click", () => {
+						if (controlsFrame.classList.contains("detached")) {
+							controlsFrame.classList.remove("detached");
+							controlsFrame.classList.add("attached");
+							controlsFrame.style.position = "";
+							controlsFrame.style.top = "";
+							controlsFrame.style.left = "";
+							controlsFrame.style.right = "";
+							controlsFrame.style.zIndex = "";
+							controlsFrame.style.width = "";
+							controlsFrame.style.height = "";
+							detachBtn.textContent = "📌 Detach Controls";
+							originalControlsParent.appendChild(controlsFrame);
+						} else {
+							controlsFrame.classList.remove("attached");
+							controlsFrame.classList.add("detached");
+							controlsFrame.style.top = "100px";
+							controlsFrame.style.right = "20px";
+							detachBtn.textContent = "📎 Attach Controls";
+							document.body.appendChild(controlsFrame);
+						}
+					});
 
-      detachVideoBtn.addEventListener('click', () => {
-        if (videoFrame.classList.contains('detached')) {
-          videoFrame.classList.remove('detached');
-          videoFrame.classList.add('attached');
-          videoFrame.style.position = '';
-          videoFrame.style.top = '';
-          videoFrame.style.left = '';
-          videoFrame.style.right = '';
-          videoFrame.style.zIndex = '';
-          videoFrame.style.width = '';
-          videoFrame.style.height = '';
-          detachVideoBtn.textContent = '🎬 Detach Video';
-          originalVideoParent.appendChild(videoFrame);
-        } else {
-          videoFrame.classList.remove('attached');
-          videoFrame.classList.add('detached');
-          videoFrame.style.top = '50px';
-          videoFrame.style.left = '50px';
-          detachVideoBtn.textContent = '🎬 Attach Video';
-          document.body.appendChild(videoFrame);
-        }
-      });
+					detachVideoBtn.addEventListener("click", () => {
+						if (videoFrame.classList.contains("detached")) {
+							videoFrame.classList.remove("detached");
+							videoFrame.classList.add("attached");
+							videoFrame.style.position = "";
+							videoFrame.style.top = "";
+							videoFrame.style.left = "";
+							videoFrame.style.right = "";
+							videoFrame.style.zIndex = "";
+							videoFrame.style.width = "";
+							videoFrame.style.height = "";
+							detachVideoBtn.textContent = "🎬 Detach Video";
+							originalVideoParent.appendChild(videoFrame);
+						} else {
+							videoFrame.classList.remove("attached");
+							videoFrame.classList.add("detached");
+							videoFrame.style.top = "50px";
+							videoFrame.style.left = "50px";
+							detachVideoBtn.textContent = "🎬 Attach Video";
+							document.body.appendChild(videoFrame);
+						}
+					});
 
-      function setupDragHandlers(frame, dragHandle) {
-        dragHandle.addEventListener('mousedown', (e) => {
-          if (!frame.classList.contains('detached')) return;
-          isDragging = true;
-          currentDragElement = frame;
-          const rect = frame.getBoundingClientRect();
-          dragOffset.x = e.clientX - rect.left;
-          dragOffset.y = e.clientY - rect.top;
-          frame.style.cursor = 'grabbing';
-          e.preventDefault();
-        });
-      }
+					function setupDragHandlers(frame, dragHandle) {
+						dragHandle.addEventListener("mousedown", (e) => {
+							if (!frame.classList.contains("detached")) return;
+							isDragging = true;
+							currentDragElement = frame;
+							const rect = frame.getBoundingClientRect();
+							dragOffset.x = e.clientX - rect.left;
+							dragOffset.y = e.clientY - rect.top;
+							frame.style.cursor = "grabbing";
+							e.preventDefault();
+						});
+					}
 
-      setupDragHandlers(controlsFrame, controlsFrame.querySelector('.drag-handle'));
-      setupDragHandlers(videoFrame, videoFrame.querySelector('.drag-handle'));
+					setupDragHandlers(
+						controlsFrame,
+						controlsFrame.querySelector(".drag-handle")
+					);
+					setupDragHandlers(
+						videoFrame,
+						videoFrame.querySelector(".drag-handle")
+					);
 
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging || !currentDragElement || !currentDragElement.classList.contains('detached')) return;
-        const x = e.clientX - dragOffset.x;
-        const y = e.clientY - dragOffset.y;
-        const maxX = window.innerWidth - currentDragElement.offsetWidth;
-        const maxY = window.innerHeight - currentDragElement.offsetHeight;
-        currentDragElement.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
-        currentDragElement.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
-        currentDragElement.style.right = 'auto';
-      });
+					document.addEventListener("mousemove", (e) => {
+						if (
+							!isDragging ||
+							!currentDragElement ||
+							!currentDragElement.classList.contains("detached")
+						)
+							return;
+						const x = e.clientX - dragOffset.x;
+						const y = e.clientY - dragOffset.y;
+						const maxX = window.innerWidth - currentDragElement.offsetWidth;
+						const maxY = window.innerHeight - currentDragElement.offsetHeight;
+						currentDragElement.style.left =
+							Math.max(0, Math.min(x, maxX)) + "px";
+						currentDragElement.style.top =
+							Math.max(0, Math.min(y, maxY)) + "px";
+						currentDragElement.style.right = "auto";
+					});
 
-      document.addEventListener('mouseup', () => {
-        if (isDragging) {
-          isDragging = false;
-          if (currentDragElement) {
-            currentDragElement.style.cursor = '';
-          }
-          currentDragElement = null;
-        }
-      });
+					document.addEventListener("mouseup", () => {
+						if (isDragging) {
+							isDragging = false;
+							if (currentDragElement) {
+								currentDragElement.style.cursor = "";
+							}
+							currentDragElement = null;
+						}
+					});
 
-      function createEventRow(name, key, type, prefill = '') {
-        clearEmptyState();
-        const row = document.createElement('div');
-        row.className = 'event-row';
+					function createEventRow(name, key, type, prefill = "") {
+						clearEmptyState();
+						const row = document.createElement("div");
+						row.className = "event-row";
 
-        const keybtn = document.createElement('button');
-        keybtn.className = 'keybtn';
-        keybtn.textContent = key.toUpperCase();
-        keybtn.title = `Press ${key.toUpperCase()} to record`;
+						const keybtn = document.createElement("button");
+						keybtn.className = "keybtn";
+						keybtn.textContent = key.toUpperCase();
+						keybtn.title = `Press ${key.toUpperCase()} to record`;
 
-        const label = document.createElement('span');
-        label.className = 'event-label';
-        label.textContent = name;
+						const label = document.createElement("span");
+						label.className = "event-label";
+						label.textContent = name;
 
-        const typeBadge = document.createElement('span');
-        typeBadge.className = `type-badge ${type.toLowerCase()}`;
-        typeBadge.textContent = type === 'EC' ? 'Event Count' : 'Duration';
+						const typeBadge = document.createElement("span");
+						typeBadge.className = `type-badge ${type.toLowerCase()}`;
+						typeBadge.textContent = type === "EC" ? "Event Count" : "Duration";
 
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'event-input';
-        input.value = prefill;
-        input.placeholder = type === 'EC' ? 'Timestamps will appear here...' : 'Duration ranges will appear here...';
+						const input = document.createElement("input");
+						input.type = "text";
+						input.className = "event-input";
+						input.value = prefill;
+						input.placeholder =
+							type === "EC"
+								? "Timestamps will appear here..."
+								: "Duration ranges will appear here...";
 
-        row.appendChild(keybtn);
-        row.appendChild(label);
-        row.appendChild(typeBadge);
-        row.appendChild(input);
-        eventsContainer.appendChild(row);
+						row.appendChild(keybtn);
+						row.appendChild(label);
+						row.appendChild(typeBadge);
+						row.appendChild(input);
+						eventsContainer.appendChild(row);
 
-        const keyLower = key.toLowerCase();
-        const ev = { name, type, key: keyLower, input };
-        allEvents.push(ev);
+						const keyLower = key.toLowerCase();
+						const ev = { name, type, key: keyLower, input };
+						allEvents.push(ev);
 
-        function recordTime() {
-          if (!player.duration || isNaN(player.duration)) {
-            alert('Please load a media file first!');
-            return;
-          }
+						function recordTime() {
+							if (!player.duration || isNaN(player.duration)) {
+								alert("Please load a media file first!");
+								return;
+							}
 
-          const t = fmt(player.currentTime);
-          
-          if (type === 'EC') {
-            keybtn.style.background = '#059669';
-            setTimeout(() => keybtn.style.background = '', 200);
-            let arr = input.value ? input.value.split(',').map(v => v.trim()).filter(Boolean) : [];
-            if (!arr.includes(t)) arr.push(t);
-            arr = arr.map(Number).sort((a,b)=>a-b).map(n=>n.toFixed(2));
-            input.value = arr.join(', ');
-            updateStatus('recording', `Event recorded at ${t}s`);
-            setTimeout(() => updateStatus('ready', 'Ready to track'), 1500);
-          } else {
-            if (activeDurations[keyLower]) {
-              keybtn.style.background = '#dc2626';
-              setTimeout(() => keybtn.style.background = '', 200);
-              
-              const start = activeDurations[keyLower];
-              delete activeDurations[keyLower];
-              const end = t;
-              let parts = input.value ? input.value.split(',').map(v => v.trim()).filter(Boolean) : [];
-              const placeholder = `${start}-...`;
-              const idx = parts.lastIndexOf(placeholder);
-              const pair = `${start}-${end}`;
-              if (idx !== -1) parts[idx] = pair; else parts.push(pair);
-              parts.sort((a,b)=>parseFloat(a.split('-')[0]) - parseFloat(b.split('-')[0]));
-              input.value = parts.join(', ');
-              updateStatus('recording', `Duration ended: ${(end-start).toFixed(2)}s`);
-              setTimeout(() => updateStatus('ready', 'Ready to track'), 1500);
-            } else {
-              keybtn.style.background = '#d97706';
-              setTimeout(() => keybtn.style.background = '', 200);
-              
-              activeDurations[keyLower] = t;
-              let parts = input.value ? input.value.split(',').map(v => v.trim()).filter(Boolean) : [];
-              parts.push(`${t}-...`);
-              input.value = parts.join(', ');
-              updateStatus('recording', `Duration started at ${t}s`);
-            }
-          }
-        }
+							const t = fmt(player.currentTime);
 
-        keybtn.addEventListener('click', recordTime);
-        keyBindings[keyLower] = recordTime;
-      }
+							if (type === "EC") {
+								keybtn.style.background = "#059669";
+								setTimeout(() => (keybtn.style.background = ""), 200);
+								let arr = input.value
+									? input.value
+											.split(",")
+											.map((v) => v.trim())
+											.filter(Boolean)
+									: [];
+								if (!arr.includes(t)) arr.push(t);
+								arr = arr
+									.map(Number)
+									.sort((a, b) => a - b)
+									.map((n) => n.toFixed(2));
+								input.value = arr.join(", ");
+								updateStatus("recording", `Event recorded at ${t}s`);
+								setTimeout(() => updateStatus("ready", "Ready to track"), 1500);
+							} else {
+								if (activeDurations[keyLower]) {
+									keybtn.style.background = "#dc2626";
+									setTimeout(() => (keybtn.style.background = ""), 200);
 
-      document.getElementById('createEC').addEventListener('click', () => {
-        const name = prompt('Enter Event Count name (e.g., "Button Press", "Jump", etc.):');
-        if (!name) return;
-        const key = prompt('Enter key to assign (single letter or number, cannot be space):');
-        if (!key || key.trim() === '' || key === ' ' || key.length > 1) {
-          alert('Please enter a single letter or number (not space)');
-          return;
-        }
-        if (keyBindings[key.toLowerCase()]) {
-          alert('This key is already assigned to another event!');
-          return;
-        }
-        createEventRow(name, key, 'EC');
-      });
+									const start = activeDurations[keyLower];
+									delete activeDurations[keyLower];
+									const end = t;
+									let parts = input.value
+										? input.value
+												.split(",")
+												.map((v) => v.trim())
+												.filter(Boolean)
+										: [];
+									const placeholder = `${start}-...`;
+									const idx = parts.lastIndexOf(placeholder);
+									const pair = `${start}-${end}`;
+									if (idx !== -1) parts[idx] = pair;
+									else parts.push(pair);
+									parts.sort(
+										(a, b) =>
+											parseFloat(a.split("-")[0]) - parseFloat(b.split("-")[0])
+									);
+									input.value = parts.join(", ");
+									updateStatus(
+										"recording",
+										`Duration ended: ${(end - start).toFixed(2)}s`
+									);
+									setTimeout(
+										() => updateStatus("ready", "Ready to track"),
+										1500
+									);
+								} else {
+									keybtn.style.background = "#d97706";
+									setTimeout(() => (keybtn.style.background = ""), 200);
 
-      document.getElementById('createDE').addEventListener('click', () => {
-        const name = prompt('Enter Duration Event name (e.g., "Walking", "Talking", etc.):');
-        if (!name) return;
-        const key = prompt('Enter key to assign (single letter or number, cannot be space):');
-        if (!key || key.trim() === '' || key === ' ' || key.length > 1) {
-          alert('Please enter a single letter or number (not space)');
-          return;
-        }
-        if (keyBindings[key.toLowerCase()]) {
-          alert('This key is already assigned to another event!');
-          return;
-        }
-        createEventRow(name, key, 'DE');
-      });
+									activeDurations[keyLower] = t;
+									let parts = input.value
+										? input.value
+												.split(",")
+												.map((v) => v.trim())
+												.filter(Boolean)
+										: [];
+									parts.push(`${t}-...`);
+									input.value = parts.join(", ");
+									updateStatus("recording", `Duration started at ${t}s`);
+								}
+							}
+						}
 
-      document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') return;
-        const k = e.key.toLowerCase();
-        if (keyBindings[k]) {
-          e.preventDefault();
-          keyBindings[k]();
-        }
-      });
+						keybtn.addEventListener("click", recordTime);
+						keyBindings[keyLower] = recordTime;
+					}
 
-      const durationBarsPlugin = {
-        id: 'durationBarsPlugin',
-        afterDatasetsDraw(chart) {
-          const ctx = chart.ctx;
-          const xScale = chart.scales.x;
-          const yScale = chart.scales.y;
-          ctx.save();
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          
-          graphBars.forEach(bar => {
-            let y = yScale.getPixelForValue(bar.name);
-            if (Number.isNaN(y)) y = yScale.getPixelForValue(0);
-            const xStart = xScale.getPixelForValue(bar.start);
-            const xEnd   = xScale.getPixelForValue(bar.end);
-            const height = 28;
-            
-            const gradient = ctx.createLinearGradient(xStart, y - height/2, xEnd, y + height/2);
-            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.7)');
-            gradient.addColorStop(1, 'rgba(239, 68, 68, 0.4)');
-            
-            ctx.fillStyle = gradient;
-            ctx.strokeStyle = '#dc2626';
-            ctx.lineWidth = 1;
-            const width = Math.max(2, xEnd - xStart);
-            ctx.fillRect(xStart, y - height/2, width, height);
-            ctx.strokeRect(xStart, y - height/2, width, height);
-            
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            const textWidth = ctx.measureText(bar.name).width;
-            if (textWidth < width - 10) {
-              ctx.fillText(bar.name, (xStart + xEnd)/2, y);
-            }
-          });
-          
-          ctx.fillStyle = '#64748b';
-          ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText('© 2025 Georgios Hoplaros, PhD', chart.width - 10, chart.height - 5);
-          
-          ctx.restore();
-        }
-      };
+					document.getElementById("createEC").addEventListener("click", () => {
+						const name = prompt(
+							'Enter Event Count name (e.g., "Button Press", "Jump", etc.):'
+						);
+						if (!name) return;
+						const key = prompt(
+							"Enter key to assign (single letter or number, cannot be space):"
+						);
+						if (!key || key.trim() === "" || key === " " || key.length > 1) {
+							alert("Please enter a single letter or number (not space)");
+							return;
+						}
+						if (keyBindings[key.toLowerCase()]) {
+							alert("This key is already assigned to another event!");
+							return;
+						}
+						createEventRow(name, key, "EC");
+					});
 
-      document.getElementById('showGraph').addEventListener('click', () => {
-        if (!player.duration || isNaN(player.duration)) {
-          alert('Please load a video/audio file and wait for metadata.');
-          return;
-        }
-        
-        const durationSec = player.duration;
-        const labels = allEvents.length ? allEvents.map(e => e.name) : ['No Observations'];
-        const datasets = [];
-        graphBars = [];
-        ecPoints = [];
-        
-        allEvents.forEach(ev => {
-          if (ev.type === 'EC') {
-            const times = (ev.input.value || '').split(',').map(v => parseFloat(v)).filter(v => Number.isFinite(v));
-            times.forEach(t => ecPoints.push({ time: t, name: ev.name }));
-            if (times.length) {
-              datasets.push({
-                label: ev.name,
-                parsing: false,
-                data: times.map(t => ({ x: t, y: ev.name })),
-                backgroundColor: '#3b82f6',
-                borderColor: '#1d4ed8',
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                showLine: false
-              });
-            }
-          } else if (ev.type === 'DE') {
-            const pairs = (ev.input.value || '').split(',').map(s => s.trim()).filter(Boolean).filter(s => !s.endsWith('...'));
-            pairs.forEach(p => {
-              const [s, e] = p.split('-').map(Number);
-              if (Number.isFinite(s) && Number.isFinite(e)) graphBars.push({ start: s, end: e, name: ev.name });
-            });
-          }
-        });
-        
-        if (datasets.length === 0) {
-          datasets.push({ 
-            label: 'placeholder', 
-            parsing: false, 
-            data: [{ x: 0, y: labels[0] }], 
-            pointRadius: 0, 
-            showLine: false 
-          });
-        }
-        
-        const ctx = canvas.getContext('2d');
-        if (window.observationChart && typeof window.observationChart.destroy === 'function') {
-          window.observationChart.destroy();
-        }
-        
-        canvas.style.display = 'block';
-        
-        window.observationChart = new Chart(ctx, {
-          type: 'scatter',
-          data: { datasets },
-          options: {
-            responsive: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleColor: '#ffffff',
-                bodyColor: '#ffffff',
-                borderColor: '#3b82f6',
-                borderWidth: 1
-              }
-            },
-            scales: {
-              x: { 
-                type: 'linear', 
-                min: 0, 
-                max: durationSec,
-                ticks: { 
-                  callback: v => `${Math.floor(v/60)}:${String(Math.floor(v%60)).padStart(2,'0')}`,
-                  color: '#64748b'
-                },
-                title: { 
-                  display: true, 
-                  text: 'Time (min:sec)',
-                  color: '#1e293b',
-                  font: { weight: 'bold' }
-                },
-                grid: {
-                  color: '#e2e8f0'
-                }
-              },
-              y: { 
-                type: 'category', 
-                labels, 
-                title: { 
-                  display: true, 
-                  text: 'Observations',
-                  color: '#1e293b',
-                  font: { weight: 'bold' }
-                },
-                grid: {
-                  color: '#e2e8f0'
-                },
-                ticks: {
-                  color: '#64748b'
-                }
-              }
-            }
-          },
-          plugins: [durationBarsPlugin]
-        });
-      });
+					document.getElementById("createDE").addEventListener("click", () => {
+						const name = prompt(
+							'Enter Duration Event name (e.g., "Walking", "Talking", etc.):'
+						);
+						if (!name) return;
+						const key = prompt(
+							"Enter key to assign (single letter or number, cannot be space):"
+						);
+						if (!key || key.trim() === "" || key === " " || key.length > 1) {
+							alert("Please enter a single letter or number (not space)");
+							return;
+						}
+						if (keyBindings[key.toLowerCase()]) {
+							alert("This key is already assigned to another event!");
+							return;
+						}
+						createEventRow(name, key, "DE");
+					});
 
-      document.getElementById('saveData').addEventListener('click', () => {
-        const data = allEvents.map(ev => ({ name: ev.name, type: ev.type, key: ev.key, values: ev.input.value }));
-        const blob = new Blob([JSON.stringify({ events: data }, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; 
-        a.download = `observation_data_${new Date().toISOString().split('T')[0]}.json`; 
-        a.click();
-        URL.revokeObjectURL(url);
-        updateStatus('ready', 'Data saved successfully');
-      });
+					document.addEventListener("keydown", (e) => {
+						if (e.code === "Space") return;
+						const k = e.key.toLowerCase();
+						if (keyBindings[k]) {
+							e.preventDefault();
+							keyBindings[k]();
+						}
+					});
 
-      document.getElementById('loadData').addEventListener('click', () => {
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        inp.accept = 'application/json';
-        inp.onchange = e => {
-          const file = e.target.files[0]; 
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = () => {
-            try {
-              const parsed = JSON.parse(reader.result);
-              eventsContainer.innerHTML = '';
-              allEvents = []; 
-              keyBindings = {}; 
-              activeDurations = {};
-              (parsed.events || []).forEach(ev => {
-                createEventRow(ev.name, ev.key, ev.type, ev.values || '');
-              });
-              updateStatus('ready', 'Data loaded successfully');
-            } catch { 
-              alert('Invalid JSON file.'); 
-            }
-          };
-          reader.readAsText(file);
-        };
-        inp.click();
-      });
+					const durationBarsPlugin = {
+						id: "durationBarsPlugin",
+						afterDatasetsDraw(chart) {
+							const ctx = chart.ctx;
+							const xScale = chart.scales.x;
+							const yScale = chart.scales.y;
+							ctx.save();
+							ctx.textAlign = "center";
+							ctx.textBaseline = "middle";
+							ctx.font =
+								'12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
-      document.getElementById('analysisBtn').addEventListener('click', () => {
-        if (!player.duration || isNaN(player.duration)) { 
-          alert('Please load a video/audio file first.'); 
-          return; 
-        }
-        
-        const durationSec = player.duration;
-        let html = '<div class="section-title">📈 Observation Data Analysis</div>';
-        html += '<table><tr><th>Event Name</th><th>Type</th><th>Total Count</th><th>Total Duration (s)</th><th>Mean Duration (s)</th><th>% of Total Time</th><th>Rate per Minute</th></tr>';
-        
-        const rows = [];
-        let totalEvents = 0;
-        
-        allEvents.forEach(ev => {
-          const name = ev.name;
-          const type = ev.type;
-          
-          if (type === 'EC') {
-            const times = (ev.input.value || '').split(',').map(v => v.trim()).filter(Boolean);
-            const count = times.length;
-            totalEvents += count;
-            const rate = durationSec > 0 ? ((count / durationSec) * 60).toFixed(2) : '0.00';
-            rows.push([name, 'Event Count', count, '-', '-', '-', rate]);
-          } else {
-            const pairs = (ev.input.value || '').split(',').map(s => s.trim()).filter(Boolean).filter(s => !s.endsWith('...'));
-            let totalDur = 0;
-            pairs.forEach(p => {
-              const [s, e] = p.split('-').map(Number);
-              if (Number.isFinite(s) && Number.isFinite(e)) totalDur += (e - s);
-            });
-            const count = pairs.length;
-            totalEvents += count;
-            const meanDur = count > 0 ? (totalDur / count) : 0;
-            const perc = totalDur > 0 ? ((totalDur / durationSec) * 100) : 0;
-            const rate = durationSec > 0 ? ((count / durationSec) * 60).toFixed(2) : '0.00';
-            rows.push([name, 'Duration', count, totalDur.toFixed(2), meanDur.toFixed(2), perc.toFixed(2)+'%', rate]);
-          }
-        });
-        
-        rows.forEach(r => {
-          html += `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`;
-        });
-        html += '</table>';
-        
-        html += '<div style="margin-top: 24px; padding: 20px; background: var(--bg-primary); border-radius: 8px; border-left: 4px solid var(--primary-color);">';
-        html += '<h3 style="margin: 0 0 12px 0; color: var(--primary-color);">📊 Summary Statistics</h3>';
-        html += `<p><strong>Total Media Duration:</strong> ${Math.floor(durationSec/60)}:${String(Math.floor(durationSec%60)).padStart(2,'0')} (${durationSec.toFixed(1)}s)</p>`;
-        html += `<p><strong>Total Events Recorded:</strong> ${totalEvents}</p>`;
-        html += `<p><strong>Event Types Configured:</strong> ${allEvents.length}</p>`;
-        html += `<p><strong>Overall Event Rate:</strong> ${durationSec > 0 ? ((totalEvents / durationSec) * 60).toFixed(2) : '0.00'} events per minute</p>`;
-        html += '</div>';
-        
-        html += '<div style="margin-top: 16px; display: flex; gap: 12px;">';
-        html += '<button id="exportCSV" class="btn btn-success">📊 Export CSV</button>';
-        html += '<button id="exportDetailedCSV" class="btn btn-warning">📋 Export Detailed CSV</button>';
-        html += '</div>';
-        
-        html += '<div style="text-align: center; margin-top: 20px; padding: 10px; color: var(--text-secondary); font-size: 0.75rem; border-top: 1px solid var(--border-color);">&copy; 2025 Georgios Hoplaros, PhD</div>';
-        
-        analysisContainer.innerHTML = html;
-        analysisContainer.style.display = 'block';
+							graphBars.forEach((bar) => {
+								let y = yScale.getPixelForValue(bar.name);
+								if (Number.isNaN(y)) y = yScale.getPixelForValue(0);
+								const xStart = xScale.getPixelForValue(bar.start);
+								const xEnd = xScale.getPixelForValue(bar.end);
+								const height = 28;
 
-        document.getElementById('exportCSV').onclick = () => {
-          const csvRows = [['Event Name','Type','Total Count','Total Duration (s)','Mean Duration (s)','% of Total Time','Rate per Minute']];
-          rows.forEach(r => csvRows.push(r));
-          const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-          const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; 
-          a.download = `observation_analysis_${new Date().toISOString().split('T')[0]}.csv`; 
-          a.click();
-          URL.revokeObjectURL(url);
-        };
+								const gradient = ctx.createLinearGradient(
+									xStart,
+									y - height / 2,
+									xEnd,
+									y + height / 2
+								);
+								gradient.addColorStop(0, "rgba(239, 68, 68, 0.7)");
+								gradient.addColorStop(1, "rgba(239, 68, 68, 0.4)");
 
-        document.getElementById('exportDetailedCSV').onclick = () => {
-          const detailedRows = [['Event Name','Type','Timestamp (s)','Duration (s)','Start Time (s)','End Time (s)']];
-          
-          allEvents.forEach(ev => {
-            if (ev.type === 'EC') {
-              const times = (ev.input.value || '').split(',').map(v => parseFloat(v)).filter(v => Number.isFinite(v));
-              times.forEach(t => {
-                detailedRows.push([ev.name, 'Event Count', t.toFixed(2), '-', '-', '-']);
-              });
-            } else {
-              const pairs = (ev.input.value || '').split(',').map(s => s.trim()).filter(Boolean).filter(s => !s.endsWith('...'));
-              pairs.forEach(p => {
-                const [start, end] = p.split('-').map(Number);
-                if (Number.isFinite(start) && Number.isFinite(end)) {
-                  const duration = end - start;
-                  detailedRows.push([ev.name, 'Duration', '-', duration.toFixed(2), start.toFixed(2), end.toFixed(2)]);
-                }
-              });
-            }
-          });
-          
-          const csvContent = detailedRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-          const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; 
-          a.download = `detailed_observation_data_${new Date().toISOString().split('T')[0]}.csv`; 
-          a.click();
-          URL.revokeObjectURL(url);
-        };
-      });
+								ctx.fillStyle = gradient;
+								ctx.strokeStyle = "#dc2626";
+								ctx.lineWidth = 1;
+								const width = Math.max(2, xEnd - xStart);
+								ctx.fillRect(xStart, y - height / 2, width, height);
+								ctx.strokeRect(xStart, y - height / 2, width, height);
 
-      document.getElementById('exportSVG').addEventListener('click', () => {
-        if (!player.duration || isNaN(player.duration)) { 
-          alert('Please load a video/audio file first.'); 
-          return; 
-        }
-        
-        const durationSec = player.duration;
-        const labels = allEvents.length ? allEvents.map(e => e.name) : ['No Observations'];
-        const ec = [];
-        const de = [];
-        
-        allEvents.forEach(ev => {
-          if (ev.type === 'EC') {
-            const times = (ev.input.value || '').split(',').map(v => parseFloat(v)).filter(v => Number.isFinite(v));
-            times.forEach(t => ec.push({ time: t, name: ev.name }));
-          } else if (ev.type === 'DE') {
-            const pairs = (ev.input.value || '').split(',').map(s => s.trim()).filter(Boolean).filter(s => !s.endsWith('...'));
-            pairs.forEach(p => { 
-              const [s,e] = p.split('-').map(Number); 
-              if (Number.isFinite(s) && Number.isFinite(e)) de.push({ start: s, end: e, name: ev.name }); 
-            });
-          }
-        });
-        
-        const W = 1200, H = 600;
-        const M = { left: 150, right: 40, top: 60, bottom: 80 };
-        const innerW = W - M.left - M.right;
-        const innerH = H - M.top - M.bottom;
-        
-        const xFor = t => M.left + (t / durationSec) * innerW;
-        const yForName = name => {
-          const idx = Math.max(0, labels.indexOf(name));
-          const step = innerH / (labels.length || 1);
-          return M.top + step * idx + step / 2;
-        };
-        
-        const yStep = innerH / (labels.length || 1);
-        
-        function niceStep(max, target=10) {
-          const raw = max / target;
-          const bases = [1,2,5];
-          const pow = Math.pow(10, Math.floor(Math.log10(raw || 1)));
-          for (const b of bases) { 
-            const step = b * pow; 
-            if (raw <= step) return step; 
-          }
-          return 10 * pow;
-        }
-        
-        const step = Math.max(1, niceStep(durationSec));
-        const fmtTick = v => `${Math.floor(v/60)}:${String(Math.floor(v%60)).padStart(2,'0')}`;
-        
-        let svg = `<?xml version="1.0" encoding="UTF-8"?>
+								ctx.fillStyle = "#1e293b";
+								ctx.font =
+									'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+								const textWidth = ctx.measureText(bar.name).width;
+								if (textWidth < width - 10) {
+									ctx.fillText(bar.name, (xStart + xEnd) / 2, y);
+								}
+							});
+
+							ctx.fillStyle = "#64748b";
+							ctx.font =
+								'10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+							ctx.textAlign = "right";
+							ctx.textBaseline = "bottom";
+							ctx.fillText(
+								"© 2025 Georgios Hoplaros, PhD",
+								chart.width - 10,
+								chart.height - 5
+							);
+
+							ctx.restore();
+						},
+					};
+
+					document.getElementById("showGraph").addEventListener("click", () => {
+						if (!player.duration || isNaN(player.duration)) {
+							alert("Please load a video/audio file and wait for metadata.");
+							return;
+						}
+
+						const durationSec = player.duration;
+						const labels = allEvents.length
+							? allEvents.map((e) => e.name)
+							: ["No Observations"];
+						const datasets = [];
+						graphBars = [];
+						ecPoints = [];
+
+						allEvents.forEach((ev) => {
+							if (ev.type === "EC") {
+								const times = (ev.input.value || "")
+									.split(",")
+									.map((v) => parseFloat(v))
+									.filter((v) => Number.isFinite(v));
+								times.forEach((t) => ecPoints.push({ time: t, name: ev.name }));
+								if (times.length) {
+									datasets.push({
+										label: ev.name,
+										parsing: false,
+										data: times.map((t) => ({ x: t, y: ev.name })),
+										backgroundColor: "#3b82f6",
+										borderColor: "#1d4ed8",
+										pointRadius: 6,
+										pointHoverRadius: 8,
+										showLine: false,
+									});
+								}
+							} else if (ev.type === "DE") {
+								const pairs = (ev.input.value || "")
+									.split(",")
+									.map((s) => s.trim())
+									.filter(Boolean)
+									.filter((s) => !s.endsWith("..."));
+								pairs.forEach((p) => {
+									const [s, e] = p.split("-").map(Number);
+									if (Number.isFinite(s) && Number.isFinite(e))
+										graphBars.push({ start: s, end: e, name: ev.name });
+								});
+							}
+						});
+
+						if (datasets.length === 0) {
+							datasets.push({
+								label: "placeholder",
+								parsing: false,
+								data: [{ x: 0, y: labels[0] }],
+								pointRadius: 0,
+								showLine: false,
+							});
+						}
+
+						const ctx = canvas.getContext("2d");
+						if (
+							window.observationChart &&
+							typeof window.observationChart.destroy === "function"
+						) {
+							window.observationChart.destroy();
+						}
+
+						canvas.style.display = "block";
+
+						window.observationChart = new Chart(ctx, {
+							type: "scatter",
+							data: { datasets },
+							options: {
+								responsive: false,
+								plugins: {
+									legend: { display: false },
+									tooltip: {
+										backgroundColor: "rgba(0, 0, 0, 0.8)",
+										titleColor: "#ffffff",
+										bodyColor: "#ffffff",
+										borderColor: "#3b82f6",
+										borderWidth: 1,
+									},
+								},
+								scales: {
+									x: {
+										type: "linear",
+										min: 0,
+										max: durationSec,
+										ticks: {
+											callback: (v) =>
+												`${Math.floor(v / 60)}:${String(
+													Math.floor(v % 60)
+												).padStart(2, "0")}`,
+											color: "#64748b",
+										},
+										title: {
+											display: true,
+											text: "Time (min:sec)",
+											color: "#1e293b",
+											font: { weight: "bold" },
+										},
+										grid: {
+											color: "#e2e8f0",
+										},
+									},
+									y: {
+										type: "category",
+										labels,
+										title: {
+											display: true,
+											text: "Observations",
+											color: "#1e293b",
+											font: { weight: "bold" },
+										},
+										grid: {
+											color: "#e2e8f0",
+										},
+										ticks: {
+											color: "#64748b",
+										},
+									},
+								},
+							},
+							plugins: [durationBarsPlugin],
+						});
+					});
+
+					document.getElementById("saveData").addEventListener("click", () => {
+						const data = allEvents.map((ev) => ({
+							name: ev.name,
+							type: ev.type,
+							key: ev.key,
+							values: ev.input.value,
+						}));
+						const blob = new Blob([JSON.stringify({ events: data }, null, 2)], {
+							type: "application/json",
+						});
+						const url = URL.createObjectURL(blob);
+						const a = document.createElement("a");
+						a.href = url;
+						a.download = `observation_data_${
+							new Date().toISOString().split("T")[0]
+						}.json`;
+						a.click();
+						URL.revokeObjectURL(url);
+						updateStatus("ready", "Data saved successfully");
+					});
+
+					document.getElementById("loadData").addEventListener("click", () => {
+						const inp = document.createElement("input");
+						inp.type = "file";
+						inp.accept = "application/json";
+						inp.onchange = (e) => {
+							const file = e.target.files[0];
+							if (!file) return;
+							const reader = new FileReader();
+							reader.onload = () => {
+								try {
+									const parsed = JSON.parse(reader.result);
+									eventsContainer.innerHTML = "";
+									allEvents = [];
+									keyBindings = {};
+									activeDurations = {};
+									(parsed.events || []).forEach((ev) => {
+										createEventRow(ev.name, ev.key, ev.type, ev.values || "");
+									});
+									updateStatus("ready", "Data loaded successfully");
+								} catch {
+									alert("Invalid JSON file.");
+								}
+							};
+							reader.readAsText(file);
+						};
+						inp.click();
+					});
+
+					document
+						.getElementById("analysisBtn")
+						.addEventListener("click", () => {
+							if (!player.duration || isNaN(player.duration)) {
+								alert("Please load a video/audio file first.");
+								return;
+							}
+
+							const durationSec = player.duration;
+							let html =
+								'<div class="section-title">📈 Observation Data Analysis</div>';
+							html +=
+								"<table><tr><th>Event Name</th><th>Type</th><th>Total Count</th><th>Total Duration (s)</th><th>Mean Duration (s)</th><th>% of Total Time</th><th>Rate per Minute</th></tr>";
+
+							const rows = [];
+							let totalEvents = 0;
+
+							allEvents.forEach((ev) => {
+								const name = ev.name;
+								const type = ev.type;
+
+								if (type === "EC") {
+									const times = (ev.input.value || "")
+										.split(",")
+										.map((v) => v.trim())
+										.filter(Boolean);
+									const count = times.length;
+									totalEvents += count;
+									const rate =
+										durationSec > 0
+											? ((count / durationSec) * 60).toFixed(2)
+											: "0.00";
+									rows.push([name, "Event Count", count, "-", "-", "-", rate]);
+								} else {
+									const pairs = (ev.input.value || "")
+										.split(",")
+										.map((s) => s.trim())
+										.filter(Boolean)
+										.filter((s) => !s.endsWith("..."));
+									let totalDur = 0;
+									pairs.forEach((p) => {
+										const [s, e] = p.split("-").map(Number);
+										if (Number.isFinite(s) && Number.isFinite(e))
+											totalDur += e - s;
+									});
+									const count = pairs.length;
+									totalEvents += count;
+									const meanDur = count > 0 ? totalDur / count : 0;
+									const perc =
+										totalDur > 0 ? (totalDur / durationSec) * 100 : 0;
+									const rate =
+										durationSec > 0
+											? ((count / durationSec) * 60).toFixed(2)
+											: "0.00";
+									rows.push([
+										name,
+										"Duration",
+										count,
+										totalDur.toFixed(2),
+										meanDur.toFixed(2),
+										perc.toFixed(2) + "%",
+										rate,
+									]);
+								}
+							});
+
+							rows.forEach((r) => {
+								html += `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+							});
+							html += "</table>";
+
+							html +=
+								'<div style="margin-top: 24px; padding: 20px; background: var(--bg-primary); border-radius: 8px; border-left: 4px solid var(--primary-color);">';
+							html +=
+								'<h3 style="margin: 0 0 12px 0; color: var(--primary-color);">📊 Summary Statistics</h3>';
+							html += `<p><strong>Total Media Duration:</strong> ${Math.floor(
+								durationSec / 60
+							)}:${String(Math.floor(durationSec % 60)).padStart(
+								2,
+								"0"
+							)} (${durationSec.toFixed(1)}s)</p>`;
+							html += `<p><strong>Total Events Recorded:</strong> ${totalEvents}</p>`;
+							html += `<p><strong>Event Types Configured:</strong> ${allEvents.length}</p>`;
+							html += `<p><strong>Overall Event Rate:</strong> ${
+								durationSec > 0
+									? ((totalEvents / durationSec) * 60).toFixed(2)
+									: "0.00"
+							} events per minute</p>`;
+							html += "</div>";
+
+							html +=
+								'<div style="margin-top: 16px; display: flex; gap: 12px;">';
+							html +=
+								'<button id="exportCSV" class="btn btn-success">📊 Export CSV</button>';
+							html +=
+								'<button id="exportDetailedCSV" class="btn btn-warning">📋 Export Detailed CSV</button>';
+							html += "</div>";
+
+							html +=
+								'<div style="text-align: center; margin-top: 20px; padding: 10px; color: var(--text-secondary); font-size: 0.75rem; border-top: 1px solid var(--border-color);">&copy; 2025 Georgios Hoplaros, PhD</div>';
+
+							analysisContainer.innerHTML = html;
+							analysisContainer.style.display = "block";
+
+							document.getElementById("exportCSV").onclick = () => {
+								const csvRows = [
+									[
+										"Event Name",
+										"Type",
+										"Total Count",
+										"Total Duration (s)",
+										"Mean Duration (s)",
+										"% of Total Time",
+										"Rate per Minute",
+									],
+								];
+								rows.forEach((r) => csvRows.push(r));
+								const csvContent = csvRows
+									.map((row) => row.map((cell) => `"${cell}"`).join(","))
+									.join("\n");
+								const blob = new Blob(["\uFEFF" + csvContent], {
+									type: "text/csv;charset=utf-8;",
+								});
+								const url = URL.createObjectURL(blob);
+								const a = document.createElement("a");
+								a.href = url;
+								a.download = `observation_analysis_${
+									new Date().toISOString().split("T")[0]
+								}.csv`;
+								a.click();
+								URL.revokeObjectURL(url);
+							};
+
+							document.getElementById("exportDetailedCSV").onclick = () => {
+								const detailedRows = [
+									[
+										"Event Name",
+										"Type",
+										"Timestamp (s)",
+										"Duration (s)",
+										"Start Time (s)",
+										"End Time (s)",
+									],
+								];
+
+								allEvents.forEach((ev) => {
+									if (ev.type === "EC") {
+										const times = (ev.input.value || "")
+											.split(",")
+											.map((v) => parseFloat(v))
+											.filter((v) => Number.isFinite(v));
+										times.forEach((t) => {
+											detailedRows.push([
+												ev.name,
+												"Event Count",
+												t.toFixed(2),
+												"-",
+												"-",
+												"-",
+											]);
+										});
+									} else {
+										const pairs = (ev.input.value || "")
+											.split(",")
+											.map((s) => s.trim())
+											.filter(Boolean)
+											.filter((s) => !s.endsWith("..."));
+										pairs.forEach((p) => {
+											const [start, end] = p.split("-").map(Number);
+											if (Number.isFinite(start) && Number.isFinite(end)) {
+												const duration = end - start;
+												detailedRows.push([
+													ev.name,
+													"Duration",
+													"-",
+													duration.toFixed(2),
+													start.toFixed(2),
+													end.toFixed(2),
+												]);
+											}
+										});
+									}
+								});
+
+								const csvContent = detailedRows
+									.map((row) => row.map((cell) => `"${cell}"`).join(","))
+									.join("\n");
+								const blob = new Blob(["\uFEFF" + csvContent], {
+									type: "text/csv;charset=utf-8;",
+								});
+								const url = URL.createObjectURL(blob);
+								const a = document.createElement("a");
+								a.href = url;
+								a.download = `detailed_observation_data_${
+									new Date().toISOString().split("T")[0]
+								}.csv`;
+								a.click();
+								URL.revokeObjectURL(url);
+							};
+						});
+
+					document.getElementById("exportSVG").addEventListener("click", () => {
+						if (!player.duration || isNaN(player.duration)) {
+							alert("Please load a video/audio file first.");
+							return;
+						}
+
+						const durationSec = player.duration;
+						const labels = allEvents.length
+							? allEvents.map((e) => e.name)
+							: ["No Observations"];
+						const ec = [];
+						const de = [];
+
+						allEvents.forEach((ev) => {
+							if (ev.type === "EC") {
+								const times = (ev.input.value || "")
+									.split(",")
+									.map((v) => parseFloat(v))
+									.filter((v) => Number.isFinite(v));
+								times.forEach((t) => ec.push({ time: t, name: ev.name }));
+							} else if (ev.type === "DE") {
+								const pairs = (ev.input.value || "")
+									.split(",")
+									.map((s) => s.trim())
+									.filter(Boolean)
+									.filter((s) => !s.endsWith("..."));
+								pairs.forEach((p) => {
+									const [s, e] = p.split("-").map(Number);
+									if (Number.isFinite(s) && Number.isFinite(e))
+										de.push({ start: s, end: e, name: ev.name });
+								});
+							}
+						});
+
+						const W = 1200,
+							H = 600;
+						const M = { left: 150, right: 40, top: 60, bottom: 80 };
+						const innerW = W - M.left - M.right;
+						const innerH = H - M.top - M.bottom;
+
+						const xFor = (t) => M.left + (t / durationSec) * innerW;
+						const yForName = (name) => {
+							const idx = Math.max(0, labels.indexOf(name));
+							const step = innerH / (labels.length || 1);
+							return M.top + step * idx + step / 2;
+						};
+
+						const yStep = innerH / (labels.length || 1);
+
+						function niceStep(max, target = 10) {
+							const raw = max / target;
+							const bases = [1, 2, 5];
+							const pow = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+							for (const b of bases) {
+								const step = b * pow;
+								if (raw <= step) return step;
+							}
+							return 10 * pow;
+						}
+
+						const step = Math.max(1, niceStep(durationSec));
+						const fmtTick = (v) =>
+							`${Math.floor(v / 60)}:${String(Math.floor(v % 60)).padStart(
+								2,
+								"0"
+							)}`;
+
+						let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
   <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1315,86 +1597,137 @@
 
 <rect width="${W}" height="${H}" fill="#ffffff" stroke="none"/>
 
-<text x="${W/2}" y="30" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="bold" font-size="20" fill="#1e293b" text-anchor="middle">Behavioral Observation Analysis</text>
-<text x="${W/2}" y="50" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Duration: ${fmtTick(durationSec)} | Generated: ${new Date().toLocaleDateString()}</text>`;
-        
-        // Grid lines and tick labels
-        for (let v = 0; v <= durationSec + 0.0001; v += step) {
-          const x = xFor(Math.min(v, durationSec));
-          svg += `<line x1="${x}" y1="${M.top}" x2="${x}" y2="${H - M.bottom}" stroke="#e2e8f0" stroke-width="1"/>`;
-          svg += `<text x="${x}" y="${H - M.bottom + 20}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">${fmtTick(v)}</text>`;
-        }
-        
-        // Horizontal grid lines and event labels
-        for (let i = 0; i < labels.length; i++) {
-          const y = M.top + yStep * i + yStep / 2;
-          svg += `<line x1="${M.left}" y1="${y}" x2="${W - M.right}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>`;
-          svg += `<text x="${M.left-10}" y="${y}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" text-anchor="end" dominant-baseline="middle">${labels[i]}</text>`;
-        }
-        
-        // Main axes
-        svg += `<line x1="${M.left}" y1="${M.top}" x2="${M.left}" y2="${H - M.bottom}" stroke="#94a3b8" stroke-width="2"/>`;
-        svg += `<line x1="${M.left}" y1="${H - M.bottom}" x2="${W - M.right}" y2="${H - M.bottom}" stroke="#94a3b8" stroke-width="2"/>`;
-        
-        // Axis labels
-        svg += `<text x="${(M.left + W - M.right)/2}" y="${H-10}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#475569" text-anchor="middle">Time (min:sec)</text>`;
-        svg += `<text x="20" y="${(M.top + H - M.bottom)/2}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#475569" text-anchor="middle" transform="rotate(-90, 20, ${(M.top + H - M.bottom)/2})">Observation Events</text>`;
-        
-        // Duration events (bars) - with explicit styling
-        de.forEach(({start,end,name}) => {
-          const x1 = xFor(start), x2 = xFor(end), y = yForName(name);
-          const h = Math.min(30, yStep * 0.6);
-          const width = Math.max(2, x2 - x1);
-          svg += `<rect x="${x1}" y="${y - h/2}" width="${width}" height="${h}" fill="#ef4444" fill-opacity="0.7" stroke="#dc2626" stroke-width="1" filter="url(#shadow)"/>`;
-          
-          if (width > 40) {
-            const duration = (end - start).toFixed(1);
-            svg += `<text x="${(x1+x2)/2}" y="${y}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" text-anchor="middle" dominant-baseline="middle">${duration}s</text>`;
-          }
-        });
-        
-        // Event count points - with explicit styling
-        ec.forEach(({time,name}) => {
-          svg += `<circle cx="${xFor(time)}" cy="${yForName(name)}" r="6" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2" filter="url(#shadow)"/>`;
-        });
-        
-        // Legend
-        if (ec.length > 0 || de.length > 0) {
-          const legendY = H - 25;
-          let legendX = M.left;
-          
-          svg += `<rect x="${legendX}" y="${legendY - 15}" width="200" height="30" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" rx="4"/>`;
-          
-          if (ec.length > 0) {
-            svg += `<circle cx="${legendX + 15}" cy="${legendY}" r="6" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2"/>`;
-            svg += `<text x="${legendX + 30}" y="${legendY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" dominant-baseline="middle">Event Count</text>`;
-            legendX += 110;
-          }
-          
-          if (de.length > 0) {
-            svg += `<rect x="${legendX + 10}" y="${legendY - 4}" width="20" height="8" fill="#ef4444" fill-opacity="0.7" stroke="#dc2626" stroke-width="1"/>`;
-            svg += `<text x="${legendX + 40}" y="${legendY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" dominant-baseline="middle">Duration</text>`;
-          }
-        }
-        
-        // Copyright notice
-        svg += `<text x="${W - 10}" y="${H - 5}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b" text-anchor="end">© 2025 Georgios Hoplaros, PhD</text>`;
-        
-        svg += `</svg>`;
-        
-        const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; 
-        a.download = `professional_observation_chart_${new Date().toISOString().split('T')[0]}.svg`; 
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        updateStatus('ready', 'Professional SVG chart exported');
-      });
+<text x="${
+							W / 2
+						}" y="30" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="bold" font-size="20" fill="#1e293b" text-anchor="middle">Behavioral Observation Analysis</text>
+<text x="${
+							W / 2
+						}" y="50" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Duration: ${fmtTick(
+							durationSec
+						)} | Generated: ${new Date().toLocaleDateString()}</text>`;
 
-    });
-  }
-  </script>
-</body>
+						// Grid lines and tick labels
+						for (let v = 0; v <= durationSec + 0.0001; v += step) {
+							const x = xFor(Math.min(v, durationSec));
+							svg += `<line x1="${x}" y1="${M.top}" x2="${x}" y2="${
+								H - M.bottom
+							}" stroke="#e2e8f0" stroke-width="1"/>`;
+							svg += `<text x="${x}" y="${
+								H - M.bottom + 20
+							}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">${fmtTick(
+								v
+							)}</text>`;
+						}
+
+						// Horizontal grid lines and event labels
+						for (let i = 0; i < labels.length; i++) {
+							const y = M.top + yStep * i + yStep / 2;
+							svg += `<line x1="${M.left}" y1="${y}" x2="${
+								W - M.right
+							}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>`;
+							svg += `<text x="${
+								M.left - 10
+							}" y="${y}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" text-anchor="end" dominant-baseline="middle">${
+								labels[i]
+							}</text>`;
+						}
+
+						// Main axes
+						svg += `<line x1="${M.left}" y1="${M.top}" x2="${M.left}" y2="${
+							H - M.bottom
+						}" stroke="#94a3b8" stroke-width="2"/>`;
+						svg += `<line x1="${M.left}" y1="${H - M.bottom}" x2="${
+							W - M.right
+						}" y2="${H - M.bottom}" stroke="#94a3b8" stroke-width="2"/>`;
+
+						// Axis labels
+						svg += `<text x="${(M.left + W - M.right) / 2}" y="${
+							H - 10
+						}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#475569" text-anchor="middle">Time (min:sec)</text>`;
+						svg += `<text x="20" y="${
+							(M.top + H - M.bottom) / 2
+						}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#475569" text-anchor="middle" transform="rotate(-90, 20, ${
+							(M.top + H - M.bottom) / 2
+						})">Observation Events</text>`;
+
+						// Duration events (bars) - with explicit styling
+						de.forEach(({ start, end, name }) => {
+							const x1 = xFor(start),
+								x2 = xFor(end),
+								y = yForName(name);
+							const h = Math.min(30, yStep * 0.6);
+							const width = Math.max(2, x2 - x1);
+							svg += `<rect x="${x1}" y="${
+								y - h / 2
+							}" width="${width}" height="${h}" fill="#ef4444" fill-opacity="0.7" stroke="#dc2626" stroke-width="1" filter="url(#shadow)"/>`;
+
+							if (width > 40) {
+								const duration = (end - start).toFixed(1);
+								svg += `<text x="${
+									(x1 + x2) / 2
+								}" y="${y}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" text-anchor="middle" dominant-baseline="middle">${duration}s</text>`;
+							}
+						});
+
+						// Event count points - with explicit styling
+						ec.forEach(({ time, name }) => {
+							svg += `<circle cx="${xFor(time)}" cy="${yForName(
+								name
+							)}" r="6" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2" filter="url(#shadow)"/>`;
+						});
+
+						// Legend
+						if (ec.length > 0 || de.length > 0) {
+							const legendY = H - 25;
+							let legendX = M.left;
+
+							svg += `<rect x="${legendX}" y="${
+								legendY - 15
+							}" width="200" height="30" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" rx="4"/>`;
+
+							if (ec.length > 0) {
+								svg += `<circle cx="${
+									legendX + 15
+								}" cy="${legendY}" r="6" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2"/>`;
+								svg += `<text x="${
+									legendX + 30
+								}" y="${legendY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" dominant-baseline="middle">Event Count</text>`;
+								legendX += 110;
+							}
+
+							if (de.length > 0) {
+								svg += `<rect x="${legendX + 10}" y="${
+									legendY - 4
+								}" width="20" height="8" fill="#ef4444" fill-opacity="0.7" stroke="#dc2626" stroke-width="1"/>`;
+								svg += `<text x="${
+									legendX + 40
+								}" y="${legendY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#374151" dominant-baseline="middle">Duration</text>`;
+							}
+						}
+
+						// Copyright notice
+						svg += `<text x="${W - 10}" y="${
+							H - 5
+						}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b" text-anchor="end">© 2025 Georgios Hoplaros, PhD</text>`;
+
+						svg += `</svg>`;
+
+						const blob = new Blob([svg], {
+							type: "image/svg+xml;charset=utf-8",
+						});
+						const url = URL.createObjectURL(blob);
+						const a = document.createElement("a");
+						a.href = url;
+						a.download = `professional_observation_chart_${
+							new Date().toISOString().split("T")[0]
+						}.svg`;
+						a.click();
+						URL.revokeObjectURL(url);
+
+						updateStatus("ready", "Professional SVG chart exported");
+					});
+				});
+			}
+		</script>
+	</body>
 </html>
