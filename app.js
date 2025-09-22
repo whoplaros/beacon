@@ -1,6 +1,6 @@
 // app.js
 async function uploadVideo() {
-	const file = document.getElementById("videoFile").files[0];
+	const file = document.getElementById("fileInput").files[0];
 	const userId = "test-user-id"; // replace with auth user later
 
 	const filePath = `${userId}/${file.name}`;
