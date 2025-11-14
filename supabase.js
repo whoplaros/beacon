@@ -11,6 +11,17 @@ let currentUser = null;
 
 // Check authentication on page load
 document.addEventListener("DOMContentLoaded", async () => {
+	// First check if this is a password reset link
+	const hashParams = new URLSearchParams(window.location.hash.substring(1));
+	const type = hashParams.get("type");
+
+	if (type === "recovery") {
+		// This is a password reset - show the reset form, don't auto-login
+		showPasswordResetForm();
+		return;
+	}
+
+	// Normal login check
 	const {
 		data: { session },
 	} = await supabaseClient.auth.getSession();
@@ -22,8 +33,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 		showLogin();
 	}
 
-	// Listen for auth state changes
+	// Listen for auth state changes (but not during password reset)
 	supabaseClient.auth.onAuthStateChange((event, session) => {
+		// Don't auto-login if we're resetting password
+		const hashParams = new URLSearchParams(window.location.hash.substring(1));
+		const type = hashParams.get("type");
+
+		if (type === "recovery") {
+			// Stay on reset form
+			return;
+		}
+
 		if (event === "SIGNED_IN" && session) {
 			currentUser = session.user;
 			showApp();
@@ -158,24 +178,10 @@ async function forgotPassword() {
 	}
 }
 
-// Handle password reset on page load
-window.addEventListener("hashchange", handlePasswordReset);
-window.addEventListener("load", handlePasswordReset);
-
-function handlePasswordReset() {
-	// Check if this is a password reset from Supabase email link
-	const hashParams = new URLSearchParams(window.location.hash.substring(1));
-	const type = hashParams.get("type");
-	const accessToken = hashParams.get("access_token");
-
-	if (type === "recovery" && accessToken) {
-		showPasswordResetForm();
-	}
-}
-
 function showPasswordResetForm() {
 	const authContainer = document.getElementById("authContainer");
 	if (authContainer) {
+		authContainer.style.display = "block";
 		authContainer.innerHTML = `
 			<div class="auth-header">
 				<h1>BEACON</h1>
@@ -189,6 +195,12 @@ function showPasswordResetForm() {
 			</div>
 			<p id="authMessage" style="font-size: 0.9rem; margin-top: 10px;"></p>
 		`;
+	}
+
+	// Hide the main app container
+	const mainContainer = document.querySelector(".container");
+	if (mainContainer) {
+		mainContainer.style.display = "none";
 	}
 }
 
