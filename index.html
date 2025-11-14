@@ -126,6 +126,17 @@
 						<button id="createDE" class="btn btn-secondary">
 							⏱️ Create Duration Event
 						</button>
+
+						<button id="showGraph" class="btn btn-success">
+							📊 Show Observation Graph
+						</button>
+
+						<button id="analysisBtn" class="btn btn-primary">
+							📈 Show Data Analysis
+						</button>
+						<button id="saveData" class="btn btn-secondary">
+							💾 Save Data
+						</button>
 						<button
 							id="clearSession"
 							class="btn btn-secondary"
@@ -133,20 +144,8 @@
 						>
 							🔄 Clear Session
 						</button>
-						<button id="showGraph" class="btn btn-success">
-							📊 Show Observation Graph
-						</button>
-						<button id="exportSVG" class="btn btn-warning">
-							⬇️ Export Graph as SVG
-						</button>
-						<button id="saveData" class="btn btn-secondary">
-							💾 Save Data
-						</button>
 						<button id="mySessions" class="btn btn-primary">
 							📋 My Sessions
-						</button>
-						<button id="analysisBtn" class="btn btn-primary">
-							📈 Data Analysis
 						</button>
 					</div>
 				</div>
@@ -187,6 +186,14 @@
 					height="500"
 					style="display: none"
 				></canvas>
+				<div
+					id="exportSVGContainer"
+					style="display: none; text-align: center; margin-top: 20px"
+				>
+					<button id="exportSVG" class="btn btn-warning">
+						⬇️ Export Graph as SVG
+					</button>
+				</div>
 			</div>
 		</div>
 

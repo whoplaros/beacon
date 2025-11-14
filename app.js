@@ -442,7 +442,9 @@ if (checkExpiration()) {
 				: ["No Observations"];
 
 			const canvasElement = document.getElementById("observationChart");
+			const exportSVGContainer = document.getElementById("exportSVGContainer");
 			canvasElement.style.display = "block";
+			exportSVGContainer.style.display = "block";
 			canvasElement.scrollIntoView({ behavior: "smooth", block: "center" });
 
 			const ctx = canvasElement.getContext("2d");
@@ -620,10 +622,16 @@ if (checkExpiration()) {
 				</div>
 			`;
 
+			// Clear the video player
+			player.src = "";
+			player.removeAttribute("src");
+			mediaContainer.style.display = "none";
+
 			// Clear any displayed graphs or analysis
 			canvas.style.display = "none";
 			analysisContainer.style.display = "none";
 			analysisContainer.innerHTML = "";
+			document.getElementById("exportSVGContainer").style.display = "none";
 
 			if (window.observationChartInstance) {
 				window.observationChartInstance.destroy();
@@ -1211,7 +1219,18 @@ async function loadSessionById(sessionId) {
 		});
 
 		closeSessionsModal();
-		alert("Session loaded successfully!");
+
+		// Check if a video is loaded
+		const player = document.getElementById("player");
+		if (!player.src || player.src === window.location.href) {
+			alert(
+				"Session loaded successfully!\n\n⚠️ Please load your video file to continue working with this session."
+			);
+		} else {
+			alert(
+				"Session loaded successfully!\n\nℹ️ Make sure you have the correct video file loaded for this session."
+			);
+		}
 	} catch (error) {
 		console.error("Error loading session:", error);
 		alert("Error loading session: " + error.message);
