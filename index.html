@@ -10,6 +10,20 @@
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
+		<!-- Authentication UI -->
+		<div id="authContainer" class="auth-container">
+			<h2>Login to BEACON</h2>
+			<input type="email" id="emailInput" placeholder="Email" />
+			<input type="password" id="passwordInput" placeholder="Password" />
+
+			<div class="auth-buttons">
+				<button onclick="logIn()">Log In</button>
+				<button onclick="signUp()">Sign Up</button>
+			</div>
+
+			<p id="authMessage" style="color: red; font-size: 0.9rem"></p>
+		</div>
+
 		<div class="container">
 			<div class="header">
 				<h1>BEACON</h1>
