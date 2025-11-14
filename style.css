@@ -479,15 +479,6 @@ body {
 	background: #b45309;
 }
 
-/* Custom button hover states */
-.btn[style*="background: #60a5fa"]:hover {
-	background: #3b82f6 !important;
-}
-
-.btn[style*="background: #6ee7b7"]:hover {
-	background: #34d399 !important;
-}
-
 .events-container {
 	background: var(--bg-secondary);
 	border-radius: 8px;

@@ -291,6 +291,11 @@ if (checkExpiration()) {
 			keybtn.textContent = key.toUpperCase();
 			keybtn.title = `Press ${key.toUpperCase()} to record`;
 
+			// Make duration event buttons red
+			if (type === "DE") {
+				keybtn.style.background = "var(--danger-color)";
+			}
+
 			const label = document.createElement("span");
 			label.className = "event-label";
 			label.textContent = name;
@@ -829,7 +834,7 @@ if (checkExpiration()) {
           </tbody>
         </table>
         <div style="margin-top: 20px; text-align: center;">
-          <button onclick="exportDetailedCSV()" class="btn btn-success">📥 Export Detailed CSV</button>
+          <button onclick="exportDetailedCSV()" class="btn btn-warning">📥 Export Detailed CSV</button>
         </div>
       `;
 
