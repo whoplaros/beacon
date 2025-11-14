@@ -589,19 +589,6 @@ if (checkExpiration()) {
 				console.error("Save error:", error);
 				alert("Error saving data: " + error.message);
 			}
-
-			// Also download as JSON backup
-			const blob = new Blob([JSON.stringify(sessionData, null, 2)], {
-				type: "application/json",
-			});
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = `beacon_session_${
-				new Date().toISOString().split("T")[0]
-			}.json`;
-			a.click();
-			URL.revokeObjectURL(url);
 		});
 
 		document.getElementById("loadData").addEventListener("click", () => {
