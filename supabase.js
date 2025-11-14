@@ -107,16 +107,42 @@ function showApp() {
 		document.body.appendChild(logoutBtn);
 	}
 
-	// Show user email
+	// Add email tooltip that appears on hover
 	if (currentUser) {
-		let userInfo = document.getElementById("userInfo");
-		if (!userInfo) {
-			userInfo = document.createElement("div");
-			userInfo.id = "userInfo";
-			userInfo.style.cssText =
-				"position: fixed; top: 50px; right: 10px; z-index: 9999; background: white; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.85rem; color: #64748b;";
-			userInfo.textContent = `Logged in as: ${currentUser.email}`;
-			document.body.appendChild(userInfo);
+		let userTooltip = document.getElementById("userTooltip");
+		if (!userTooltip) {
+			userTooltip = document.createElement("div");
+			userTooltip.id = "userTooltip";
+			userTooltip.style.cssText = `
+				position: fixed; 
+				top: 50px; 
+				right: 10px; 
+				z-index: 9998; 
+				background: white; 
+				padding: 8px 12px; 
+				border-radius: 6px; 
+				box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
+				font-size: 0.85rem; 
+				color: #64748b;
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 0.2s ease, visibility 0.2s ease;
+				pointer-events: none;
+				white-space: nowrap;
+			`;
+			userTooltip.textContent = `Logged in as: ${currentUser.email}`;
+			document.body.appendChild(userTooltip);
+
+			// Show tooltip on logout button hover
+			logoutBtn.addEventListener("mouseenter", () => {
+				userTooltip.style.opacity = "1";
+				userTooltip.style.visibility = "visible";
+			});
+
+			logoutBtn.addEventListener("mouseleave", () => {
+				userTooltip.style.opacity = "0";
+				userTooltip.style.visibility = "hidden";
+			});
 		}
 	}
 }
@@ -129,8 +155,8 @@ function showLogin() {
 	const logoutBtn = document.getElementById("logoutBtn");
 	if (logoutBtn) logoutBtn.remove();
 
-	const userInfo = document.getElementById("userInfo");
-	if (userInfo) userInfo.remove();
+	const userTooltip = document.getElementById("userTooltip");
+	if (userTooltip) userTooltip.remove();
 }
 
 // Helper function to get current user ID
