@@ -49,10 +49,9 @@ async function uploadVideo() {
 			.insert({
 				user_id: userId,
 				title: file.name,
-				file_path: filePath,
+				upload_url: filePath,
 				file_size: file.size,
 				file_type: file.type,
-				public_url: urlData.publicUrl,
 			})
 			.select();
 
@@ -321,6 +320,9 @@ if (checkExpiration()) {
 
 			keybtn.addEventListener("click", () => handleKeyPress(key));
 		}
+
+		// Make createEventRow globally accessible
+		window.createEventRow = createEventRow;
 
 		function handleKeyPress(key) {
 			const event = keyBindings[key];
@@ -591,35 +593,43 @@ if (checkExpiration()) {
 			}
 		});
 
-		document.getElementById("loadData").addEventListener("click", () => {
-			const input = document.createElement("input");
-			input.type = "file";
-			input.accept = ".json";
-			input.addEventListener("change", (e) => {
-				const file = e.target.files[0];
-				if (file) {
-					const reader = new FileReader();
-					reader.onload = (evt) => {
-						try {
-							const data = JSON.parse(evt.target.result);
-							eventsContainer.innerHTML = "";
-							allEvents = [];
-							keyBindings = {};
-							activeDurations = {};
+		document.getElementById("clearSession").addEventListener("click", () => {
+			if (
+				!confirm(
+					"Are you sure you want to clear all events and start fresh? This will NOT delete saved sessions in the cloud."
+				)
+			) {
+				return;
+			}
 
-							data.events.forEach((e) => {
-								createEventRow(e.name, e.key, e.type, e.values);
-							});
+			// Clear all events
+			eventsContainer.innerHTML = "";
+			allEvents = [];
+			keyBindings = {};
+			activeDurations = {};
 
-							alert("Data loaded successfully!");
-						} catch (err) {
-							alert("Error loading file: " + err.message);
-						}
-					};
-					reader.readAsText(file);
-				}
-			});
-			input.click();
+			// Add back empty state
+			eventsContainer.innerHTML = `
+				<div class="empty-state">
+					<div class="empty-state-icon">🎯</div>
+					<p><strong>No events configured yet</strong></p>
+					<p>
+						Click "Create Event Count" or "Create Duration Event" to
+						start tracking behaviors
+					</p>
+				</div>
+			`;
+
+			// Clear any displayed graphs or analysis
+			canvas.style.display = "none";
+			analysisContainer.style.display = "none";
+			analysisContainer.innerHTML = "";
+
+			if (window.observationChartInstance) {
+				window.observationChartInstance.destroy();
+			}
+
+			updateStatus("ready", "Session cleared - Ready to start fresh");
 		});
 
 		document.getElementById("analysisBtn").addEventListener("click", () => {
@@ -1078,5 +1088,163 @@ if (checkExpiration()) {
 
 			updateStatus("ready", "Professional SVG chart exported");
 		});
+
+		// My Sessions functionality
+		document
+			.getElementById("mySessions")
+			.addEventListener("click", async () => {
+				await showSessionsModal();
+			});
 	});
 }
+
+// My Sessions Modal Functions (outside DOMContentLoaded)
+async function showSessionsModal() {
+	const userId = getCurrentUserId();
+	if (!userId) {
+		alert("You must be logged in to view your sessions.");
+		return;
+	}
+
+	const modal = document.getElementById("sessionsModal");
+	const container = document.getElementById("sessionsListContainer");
+	modal.style.display = "flex";
+	container.innerHTML =
+		'<p style="text-align: center; color: #64748b;">Loading sessions...</p>';
+
+	try {
+		const { data: sessions, error } = await supabaseClient
+			.from("observation_sessions")
+			.select("*")
+			.eq("user_id", userId)
+			.order("created_at", { ascending: false });
+
+		if (error) throw error;
+
+		if (!sessions || sessions.length === 0) {
+			container.innerHTML = `
+				<div style="text-align: center; padding: 40px; color: #64748b;">
+					<div style="font-size: 3rem; margin-bottom: 16px; opacity: 0.3;">📋</div>
+					<p><strong>No saved sessions yet</strong></p>
+					<p>Create some observations and click "Save Data" to save your first session.</p>
+				</div>
+			`;
+			return;
+		}
+
+		// Display sessions
+		let html = "";
+		sessions.forEach((session, index) => {
+			const date = new Date(session.created_at);
+			const dateStr = date.toLocaleDateString();
+			const timeStr = date.toLocaleTimeString();
+			const duration = session.video_duration
+				? `${Math.floor(session.video_duration / 60)}:${String(
+						Math.floor(session.video_duration % 60)
+				  ).padStart(2, "0")}`
+				: "N/A";
+			const eventCount = session.session_data?.events?.length || 0;
+
+			html += `
+				<div class="session-card">
+					<div class="session-card-header">
+						<div>
+							<h3 class="session-card-title">Session ${sessions.length - index}</h3>
+							<div class="session-card-date">${dateStr} at ${timeStr}</div>
+						</div>
+					</div>
+					<div class="session-card-info">
+						<span>📊 <strong>${eventCount}</strong> events tracked</span>
+						<span>⏱️ Duration: <strong>${duration}</strong></span>
+					</div>
+					<div class="session-card-actions">
+						<button class="btn btn-primary" onclick="loadSessionById('${session.id}')">
+							📂 Load Session
+						</button>
+						<button class="btn btn-secondary" onclick="deleteSession('${
+							session.id
+						}')" style="background: var(--danger-color);">
+							🗑️ Delete
+						</button>
+					</div>
+				</div>
+			`;
+		});
+
+		container.innerHTML = html;
+	} catch (error) {
+		console.error("Error loading sessions:", error);
+		container.innerHTML = `
+			<div style="text-align: center; padding: 40px; color: #dc2626;">
+				<p><strong>Error loading sessions</strong></p>
+				<p>${error.message}</p>
+			</div>
+		`;
+	}
+}
+
+function closeSessionsModal() {
+	document.getElementById("sessionsModal").style.display = "none";
+}
+
+async function loadSessionById(sessionId) {
+	try {
+		const { data: session, error } = await supabaseClient
+			.from("observation_sessions")
+			.select("*")
+			.eq("id", sessionId)
+			.single();
+
+		if (error) throw error;
+
+		// Clear existing events
+		const eventsContainer = document.getElementById("eventsContainer");
+		eventsContainer.innerHTML = "";
+		window.allEvents = [];
+		window.keyBindings = {};
+		window.activeDurations = {};
+
+		// Load the session data
+		const sessionData = session.session_data;
+		sessionData.events.forEach((e) => {
+			window.createEventRow(e.name, e.key, e.type, e.values);
+		});
+
+		closeSessionsModal();
+		alert("Session loaded successfully!");
+	} catch (error) {
+		console.error("Error loading session:", error);
+		alert("Error loading session: " + error.message);
+	}
+}
+
+async function deleteSession(sessionId) {
+	if (
+		!confirm(
+			"Are you sure you want to delete this session? This cannot be undone."
+		)
+	) {
+		return;
+	}
+
+	try {
+		const { error } = await supabaseClient
+			.from("observation_sessions")
+			.delete()
+			.eq("id", sessionId);
+
+		if (error) throw error;
+
+		alert("Session deleted successfully!");
+		await showSessionsModal(); // Refresh the list
+	} catch (error) {
+		console.error("Error deleting session:", error);
+		alert("Error deleting session: " + error.message);
+	}
+}
+
+// Make createEventRow globally accessible
+window.createEventRow = null;
+window.allEvents = [];
+window.keyBindings = {};
+window.activeDurations = {};

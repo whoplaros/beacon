@@ -126,6 +126,13 @@
 						<button id="createDE" class="btn btn-secondary">
 							⏱️ Create Duration Event
 						</button>
+						<button
+							id="clearSession"
+							class="btn btn-secondary"
+							style="background: var(--warning-color)"
+						>
+							🔄 Clear Session
+						</button>
 						<button id="showGraph" class="btn btn-success">
 							📊 Show Observation Graph
 						</button>
@@ -135,8 +142,8 @@
 						<button id="saveData" class="btn btn-secondary">
 							💾 Save Data
 						</button>
-						<button id="loadData" class="btn btn-secondary">
-							📂 Load Data
+						<button id="mySessions" class="btn btn-primary">
+							📋 My Sessions
 						</button>
 						<button id="analysisBtn" class="btn btn-primary">
 							📈 Data Analysis
@@ -185,6 +192,21 @@
 
 		<!-- Copyright footer at the absolute bottom of the page -->
 		<div class="copyright-footer">&copy; 2025 Georgios Hoplaros, PhD</div>
+
+		<!-- My Sessions Modal -->
+		<div id="sessionsModal" class="modal" style="display: none">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2>📋 My Saved Sessions</h2>
+					<button class="modal-close" onclick="closeSessionsModal()">
+						&times;
+					</button>
+				</div>
+				<div id="sessionsListContainer" class="sessions-list">
+					<p style="text-align: center; color: #64748b">Loading sessions...</p>
+				</div>
+			</div>
+		</div>
 
 		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
 		<script src="supabase.js"></script>
