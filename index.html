@@ -12,6 +12,10 @@
 	<body>
 		<!-- Authentication UI -->
 		<div id="authContainer" class="auth-container">
+			<div class="auth-header">
+				<h1>BEACON</h1>
+				<p>Behavioral Educational Analysis & Classroom Observation Notebook</p>
+			</div>
 			<h2>Login to BEACON</h2>
 			<input type="email" id="emailInput" placeholder="Email" />
 			<input type="password" id="passwordInput" placeholder="Password" />
@@ -21,7 +25,7 @@
 				<button onclick="signUp()">Sign Up</button>
 			</div>
 
-			<p id="authMessage" style="color: red; font-size: 0.9rem"></p>
+			<p id="authMessage" style="font-size: 0.9rem; margin-top: 10px"></p>
 		</div>
 
 		<div class="container">
@@ -64,7 +68,13 @@
 						>
 							Supports MP4, MP3, WAV, and other common formats
 						</p>
-						<button onclick="uploadVideo()">Upload</button>
+						<button
+							onclick="uploadVideo()"
+							class="btn btn-primary"
+							style="margin-top: 12px"
+						>
+							💾 Upload to Cloud
+						</button>
 					</div>
 
 					<div id="mediaContainer" style="display: none">

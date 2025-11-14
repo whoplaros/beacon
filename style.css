@@ -31,28 +31,98 @@ body {
 	color: var(--text-primary);
 	min-height: 100vh;
 }
+
+/* Authentication Container */
 .auth-container {
-	max-width: 400px;
-	margin: 60px auto;
-	padding: 20px;
-	border: 1px solid #ddd;
-	border-radius: 10px;
-	background: #f9f9f9;
+	max-width: 450px;
+	margin: 80px auto;
+	padding: 40px;
+	border: 1px solid var(--border-color);
+	border-radius: 16px;
+	background: var(--bg-primary);
+	box-shadow: var(--shadow-lg);
 	text-align: center;
 }
 
+.auth-header {
+	margin-bottom: 30px;
+	padding-bottom: 20px;
+	border-bottom: 2px solid var(--bg-tertiary);
+}
+
+.auth-header h1 {
+	margin: 0 0 8px 0;
+	font-size: 2rem;
+	font-weight: 700;
+	color: var(--primary-color);
+	letter-spacing: 2px;
+}
+
+.auth-header p {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+}
+
+.auth-container h2 {
+	margin: 0 0 20px 0;
+	color: var(--text-primary);
+	font-size: 1.5rem;
+}
+
 .auth-container input {
-	width: 90%;
-	padding: 10px;
-	margin: 8px 0;
+	width: 100%;
+	padding: 12px 16px;
+	margin: 10px 0;
 	font-size: 1rem;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	transition: all 0.3s ease;
+}
+
+.auth-container input:focus {
+	outline: none;
+	border-color: var(--primary-color);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.auth-buttons {
+	display: flex;
+	gap: 12px;
+	margin-top: 20px;
 }
 
 .auth-buttons button {
-	padding: 10px 20px;
-	margin: 8px;
+	flex: 1;
+	padding: 12px 24px;
 	font-size: 1rem;
+	font-weight: 500;
 	cursor: pointer;
+	border: none;
+	border-radius: 8px;
+	transition: all 0.3s ease;
+}
+
+.auth-buttons button:first-child {
+	background: var(--primary-color);
+	color: white;
+}
+
+.auth-buttons button:first-child:hover {
+	background: var(--primary-hover);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-md);
+}
+
+.auth-buttons button:last-child {
+	background: var(--secondary-color);
+	color: white;
+}
+
+.auth-buttons button:last-child:hover {
+	background: #475569;
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-md);
 }
 
 /* Hide app until user is logged in */
@@ -597,5 +667,9 @@ tr:hover td {
 	}
 	.event-label {
 		min-width: auto;
+	}
+	.auth-container {
+		margin: 40px auto;
+		padding: 30px 20px;
 	}
 }

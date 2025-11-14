@@ -3,58 +3,90 @@ const supabaseUrl = "https://duqttjehiykzkvsvmwsu.supabase.co";
 const supabaseKey =
 	"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cXR0amVoaXlremt2c3Ztd3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4MzY3ODQsImV4cCI6MjA3MzQxMjc4NH0.xKa35Fab_zB-h57p2m6EWOR8MG9m0a9-xqBLCCZghxQ";
 
-let supabaseClient;
+// Initialize Supabase client globally
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-function initSupabase() {
-	supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-}
+// Store current user globally
+let currentUser = null;
 
-// Ensure supabase is initialized before this
+// Check authentication on page load
 document.addEventListener("DOMContentLoaded", async () => {
-	const session = await supabase.auth.getSession();
+	const {
+		data: { session },
+	} = await supabaseClient.auth.getSession();
 
-	if (session.data.session) {
+	if (session) {
+		currentUser = session.user;
 		showApp();
 	} else {
 		showLogin();
 	}
+
+	// Listen for auth state changes
+	supabaseClient.auth.onAuthStateChange((event, session) => {
+		if (event === "SIGNED_IN" && session) {
+			currentUser = session.user;
+			showApp();
+		} else if (event === "SIGNED_OUT") {
+			currentUser = null;
+			showLogin();
+		}
+	});
 });
 
 async function signUp() {
 	const email = document.getElementById("emailInput").value;
 	const password = document.getElementById("passwordInput").value;
+	const authMessage = document.getElementById("authMessage");
 
-	const { error } = await supabase.auth.signUp({
+	if (!email || !password) {
+		authMessage.textContent = "Please enter both email and password.";
+		return;
+	}
+
+	const { data, error } = await supabaseClient.auth.signUp({
 		email,
 		password,
 	});
 
 	if (error) {
-		document.getElementById("authMessage").textContent = error.message;
+		authMessage.textContent = error.message;
+		authMessage.style.color = "red";
 	} else {
-		document.getElementById("authMessage").textContent =
-			"Check your email to confirm your account.";
+		authMessage.textContent = "Check your email to confirm your account.";
+		authMessage.style.color = "green";
 	}
 }
 
 async function logIn() {
 	const email = document.getElementById("emailInput").value;
 	const password = document.getElementById("passwordInput").value;
+	const authMessage = document.getElementById("authMessage");
 
-	const { error } = await supabase.auth.signInWithPassword({
+	if (!email || !password) {
+		authMessage.textContent = "Please enter both email and password.";
+		return;
+	}
+
+	const { data, error } = await supabaseClient.auth.signInWithPassword({
 		email,
 		password,
 	});
 
 	if (error) {
-		document.getElementById("authMessage").textContent = error.message;
+		authMessage.textContent = error.message;
+		authMessage.style.color = "red";
 	} else {
-		location.reload(); // Reload to trigger showing the app
+		currentUser = data.user;
+		authMessage.textContent = "Login successful!";
+		authMessage.style.color = "green";
+		// The onAuthStateChange listener will handle showing the app
 	}
 }
 
 async function logOut() {
-	await supabase.auth.signOut();
+	await supabaseClient.auth.signOut();
+	currentUser = null;
 	location.reload();
 }
 
@@ -62,15 +94,51 @@ function showApp() {
 	document.getElementById("authContainer").style.display = "none";
 	document.querySelector(".container").style.display = "block";
 
-	// Optional: add logout button
-	const logoutBtn = document.createElement("button");
-	logoutBtn.textContent = "🚪 Log Out";
-	logoutBtn.style.margin = "10px";
-	logoutBtn.onclick = logOut;
-	document.body.prepend(logoutBtn);
+	// Add logout button at the top
+	let logoutBtn = document.getElementById("logoutBtn");
+	if (!logoutBtn) {
+		logoutBtn = document.createElement("button");
+		logoutBtn.id = "logoutBtn";
+		logoutBtn.className = "btn btn-secondary";
+		logoutBtn.style.cssText =
+			"position: fixed; top: 10px; right: 10px; z-index: 9999;";
+		logoutBtn.innerHTML = "🚪 Log Out";
+		logoutBtn.onclick = logOut;
+		document.body.appendChild(logoutBtn);
+	}
+
+	// Show user email
+	if (currentUser) {
+		let userInfo = document.getElementById("userInfo");
+		if (!userInfo) {
+			userInfo = document.createElement("div");
+			userInfo.id = "userInfo";
+			userInfo.style.cssText =
+				"position: fixed; top: 50px; right: 10px; z-index: 9999; background: white; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.85rem; color: #64748b;";
+			userInfo.textContent = `Logged in as: ${currentUser.email}`;
+			document.body.appendChild(userInfo);
+		}
+	}
 }
 
 function showLogin() {
 	document.getElementById("authContainer").style.display = "block";
 	document.querySelector(".container").style.display = "none";
+
+	// Remove logout button if it exists
+	const logoutBtn = document.getElementById("logoutBtn");
+	if (logoutBtn) logoutBtn.remove();
+
+	const userInfo = document.getElementById("userInfo");
+	if (userInfo) userInfo.remove();
+}
+
+// Helper function to get current user ID
+function getCurrentUserId() {
+	return currentUser ? currentUser.id : null;
+}
+
+// Helper function to get current user email
+function getCurrentUserEmail() {
+	return currentUser ? currentUser.email : null;
 }

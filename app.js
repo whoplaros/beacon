@@ -1,31 +1,106 @@
 // app.js
-document.addEventListener("DOMContentLoaded", () => {
-	initSupabase();
-	async function uploadVideo() {
-		const file = document.getElementById("fileInput").files[0];
-		const userId = "test-user-id"; // replace with auth user later
 
-		const filePath = `${userId}/${file.name}`;
+// Upload video function with user authentication
+async function uploadVideo() {
+	const fileInput = document.getElementById("fileInput");
+	const file = fileInput.files[0];
 
-		const { data, error } = await supabase.storage
-			.from("videos")
-			.upload(filePath, file);
+	if (!file) {
+		alert("Please select a file first.");
+		return;
+	}
 
-		if (error) {
-			alert("Upload failed: " + error.message);
-			return;
+	const userId = getCurrentUserId();
+	if (!userId) {
+		alert("You must be logged in to upload files.");
+		return;
+	}
+
+	// Show uploading status
+	const uploadBtn = document.querySelector('button[onclick="uploadVideo()"]');
+	const originalText = uploadBtn.textContent;
+	uploadBtn.textContent = "Uploading...";
+	uploadBtn.disabled = true;
+
+	try {
+		// Create user-specific file path
+		const timestamp = new Date().getTime();
+		const filePath = `${userId}/${timestamp}_${file.name}`;
+
+		// Upload to Supabase Storage
+		const { data: uploadData, error: uploadError } =
+			await supabaseClient.storage.from("videos").upload(filePath, file, {
+				cacheControl: "3600",
+				upsert: false,
+			});
+
+		if (uploadError) {
+			throw uploadError;
 		}
 
-		// Insert into videos table
-		await supabase.from("videos").insert({
-			user_id: userId,
-			title: file.name,
-			upload_url: filePath,
-		});
+		// Get public URL
+		const { data: urlData } = supabaseClient.storage
+			.from("videos")
+			.getPublicUrl(filePath);
 
-		alert("Upload complete!");
+		// Insert metadata into videos table
+		const { data: dbData, error: dbError } = await supabaseClient
+			.from("videos")
+			.insert({
+				user_id: userId,
+				title: file.name,
+				file_path: filePath,
+				file_size: file.size,
+				file_type: file.type,
+				public_url: urlData.publicUrl,
+			})
+			.select();
+
+		if (dbError) {
+			throw dbError;
+		}
+
+		alert("Upload complete! File saved to your account.");
+		console.log("Upload successful:", dbData);
+
+		// Load the video into the player
+		const player = document.getElementById("player");
+		player.src = URL.createObjectURL(file);
+		document.getElementById("mediaContainer").style.display = "block";
+	} catch (error) {
+		console.error("Upload error:", error);
+		alert("Upload failed: " + error.message);
+	} finally {
+		uploadBtn.textContent = originalText;
+		uploadBtn.disabled = false;
 	}
-});
+}
+
+// Function to list user's uploaded videos
+async function listUserVideos() {
+	const userId = getCurrentUserId();
+	if (!userId) {
+		alert("You must be logged in to view your videos.");
+		return;
+	}
+
+	try {
+		const { data, error } = await supabaseClient
+			.from("videos")
+			.select("*")
+			.eq("user_id", userId)
+			.order("created_at", { ascending: false });
+
+		if (error) throw error;
+
+		console.log("Your videos:", data);
+		return data;
+	} catch (error) {
+		console.error("Error loading videos:", error);
+		alert("Error loading videos: " + error.message);
+		return [];
+	}
+}
 
 // Application expiration check
 function checkExpiration() {
@@ -230,8 +305,9 @@ if (checkExpiration()) {
 			input.value = prefill;
 			input.placeholder =
 				type === "EC"
-					? "Timestamps will appear here..."
-					: "Duration ranges will appear here...";
+					? "Recorded times will appear here..."
+					: "Duration pairs (start-end) will appear here...";
+			input.readOnly = true;
 
 			row.appendChild(keybtn);
 			row.appendChild(label);
@@ -239,195 +315,122 @@ if (checkExpiration()) {
 			row.appendChild(input);
 			eventsContainer.appendChild(row);
 
-			const keyLower = key.toLowerCase();
-			const ev = { name, type, key: keyLower, input };
-			allEvents.push(ev);
+			const event = { key, name, type, input, row };
+			allEvents.push(event);
+			keyBindings[key] = event;
 
-			function recordTime() {
-				if (!player.duration || isNaN(player.duration)) {
-					alert("Please load a media file first!");
-					return;
-				}
-
-				const t = fmt(player.currentTime);
-
-				if (type === "EC") {
-					keybtn.style.background = "#059669";
-					setTimeout(() => (keybtn.style.background = ""), 200);
-					let arr = input.value
-						? input.value
-								.split(",")
-								.map((v) => v.trim())
-								.filter(Boolean)
-						: [];
-					if (!arr.includes(t)) arr.push(t);
-					arr = arr
-						.map(Number)
-						.sort((a, b) => a - b)
-						.map((n) => n.toFixed(2));
-					input.value = arr.join(", ");
-					updateStatus("recording", `Event recorded at ${t}s`);
-					setTimeout(() => updateStatus("ready", "Ready to track"), 1500);
-				} else {
-					if (activeDurations[keyLower]) {
-						keybtn.style.background = "#dc2626";
-						setTimeout(() => (keybtn.style.background = ""), 200);
-
-						const start = activeDurations[keyLower];
-						delete activeDurations[keyLower];
-						const end = t;
-						let parts = input.value
-							? input.value
-									.split(",")
-									.map((v) => v.trim())
-									.filter(Boolean)
-							: [];
-						const placeholder = `${start}-...`;
-						const idx = parts.lastIndexOf(placeholder);
-						const pair = `${start}-${end}`;
-						if (idx !== -1) parts[idx] = pair;
-						else parts.push(pair);
-						parts.sort(
-							(a, b) =>
-								parseFloat(a.split("-")[0]) - parseFloat(b.split("-")[0])
-						);
-						input.value = parts.join(", ");
-						updateStatus(
-							"recording",
-							`Duration ended: ${(end - start).toFixed(2)}s`
-						);
-						setTimeout(() => updateStatus("ready", "Ready to track"), 1500);
-					} else {
-						keybtn.style.background = "#d97706";
-						setTimeout(() => (keybtn.style.background = ""), 200);
-
-						activeDurations[keyLower] = t;
-						let parts = input.value
-							? input.value
-									.split(",")
-									.map((v) => v.trim())
-									.filter(Boolean)
-							: [];
-						parts.push(`${t}-...`);
-						input.value = parts.join(", ");
-						updateStatus("recording", `Duration started at ${t}s`);
-					}
-				}
-			}
-
-			keybtn.addEventListener("click", recordTime);
-			keyBindings[keyLower] = recordTime;
+			keybtn.addEventListener("click", () => handleKeyPress(key));
 		}
 
+		function handleKeyPress(key) {
+			const event = keyBindings[key];
+			if (!event) return;
+
+			const currentTime = player.currentTime;
+			if (isNaN(currentTime)) {
+				alert("Please load a video/audio file before tracking events.");
+				return;
+			}
+
+			if (event.type === "EC") {
+				const existing = event.input.value ? event.input.value.split(",") : [];
+				existing.push(fmt(currentTime));
+				event.input.value = existing.join(", ");
+				ecPoints.push({ time: currentTime, name: event.name });
+				updateStatus("recording", `Event recorded at ${fmt(currentTime)}s`);
+				setTimeout(() => updateStatus("ready", "Ready to track"), 1000);
+			} else if (event.type === "DE") {
+				if (activeDurations[key]) {
+					const startTime = activeDurations[key];
+					const duration = currentTime - startTime;
+					const existing = event.input.value
+						? event.input.value.split(",")
+						: [];
+					existing.push(`${fmt(startTime)}-${fmt(currentTime)}`);
+					event.input.value = existing.join(", ");
+					delete activeDurations[key];
+					event.row.style.background = "";
+					graphBars.push({
+						start: startTime,
+						end: currentTime,
+						name: event.name,
+					});
+					updateStatus(
+						"ready",
+						`Duration ended: ${duration.toFixed(2)}s (${fmt(
+							startTime
+						)}s - ${fmt(currentTime)}s)`
+					);
+				} else {
+					activeDurations[key] = currentTime;
+					const existing = event.input.value
+						? event.input.value.split(",")
+						: [];
+					existing.push(`${fmt(currentTime)}...`);
+					event.input.value = existing.join(", ");
+					event.row.style.background = "rgba(239, 68, 68, 0.1)";
+					updateStatus(
+						"recording",
+						`Duration started at ${fmt(
+							currentTime
+						)}s - Press ${key.toUpperCase()} again to end`
+					);
+				}
+			}
+		}
+
+		document.addEventListener("keydown", (e) => {
+			if (
+				e.target.tagName === "INPUT" ||
+				e.target.tagName === "TEXTAREA" ||
+				e.target.isContentEditable
+			) {
+				return;
+			}
+			const key = e.key.toLowerCase();
+			if (keyBindings[key]) {
+				e.preventDefault();
+				handleKeyPress(key);
+			}
+		});
+
 		document.getElementById("createEC").addEventListener("click", () => {
-			const name = prompt(
-				'Enter Event Count name (e.g., "Button Press", "Jump", etc.):'
-			);
+			const name = prompt("Enter event name (e.g., 'Hand Raise'):");
 			if (!name) return;
 			const key = prompt(
-				"Enter key to assign (single letter or number, cannot be space):"
+				`Enter keyboard shortcut (single letter/number) for "${name}":`
 			);
-			if (!key || key.trim() === "" || key === " " || key.length > 1) {
-				alert("Please enter a single letter or number (not space)");
+			if (!key || key.length !== 1) {
+				alert("Please enter a single character.");
 				return;
 			}
 			if (keyBindings[key.toLowerCase()]) {
-				alert("This key is already assigned to another event!");
+				alert(`Key "${key}" is already in use.`);
 				return;
 			}
-			createEventRow(name, key, "EC");
+			createEventRow(name, key.toLowerCase(), "EC");
 		});
 
 		document.getElementById("createDE").addEventListener("click", () => {
-			const name = prompt(
-				'Enter Duration Event name (e.g., "Walking", "Talking", etc.):'
-			);
+			const name = prompt("Enter duration event name (e.g., 'Off Task'):");
 			if (!name) return;
 			const key = prompt(
-				"Enter key to assign (single letter or number, cannot be space):"
+				`Enter keyboard shortcut (single letter/number) for "${name}":`
 			);
-			if (!key || key.trim() === "" || key === " " || key.length > 1) {
-				alert("Please enter a single letter or number (not space)");
+			if (!key || key.length !== 1) {
+				alert("Please enter a single character.");
 				return;
 			}
 			if (keyBindings[key.toLowerCase()]) {
-				alert("This key is already assigned to another event!");
+				alert(`Key "${key}" is already in use.`);
 				return;
 			}
-			createEventRow(name, key, "DE");
+			createEventRow(name, key.toLowerCase(), "DE");
 		});
-
-		document.addEventListener("keydown", (e) => {
-			if (e.code === "Space") return;
-			const k = e.key.toLowerCase();
-			if (keyBindings[k]) {
-				e.preventDefault();
-				keyBindings[k]();
-			}
-		});
-
-		const durationBarsPlugin = {
-			id: "durationBarsPlugin",
-			afterDatasetsDraw(chart) {
-				const ctx = chart.ctx;
-				const xScale = chart.scales.x;
-				const yScale = chart.scales.y;
-				ctx.save();
-				ctx.textAlign = "center";
-				ctx.textBaseline = "middle";
-				ctx.font =
-					'12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-
-				graphBars.forEach((bar) => {
-					let y = yScale.getPixelForValue(bar.name);
-					if (Number.isNaN(y)) y = yScale.getPixelForValue(0);
-					const xStart = xScale.getPixelForValue(bar.start);
-					const xEnd = xScale.getPixelForValue(bar.end);
-					const height = 28;
-
-					const gradient = ctx.createLinearGradient(
-						xStart,
-						y - height / 2,
-						xEnd,
-						y + height / 2
-					);
-					gradient.addColorStop(0, "rgba(239, 68, 68, 0.7)");
-					gradient.addColorStop(1, "rgba(239, 68, 68, 0.4)");
-
-					ctx.fillStyle = gradient;
-					ctx.strokeStyle = "#dc2626";
-					ctx.lineWidth = 1;
-					const width = Math.max(2, xEnd - xStart);
-					ctx.fillRect(xStart, y - height / 2, width, height);
-					ctx.strokeRect(xStart, y - height / 2, width, height);
-
-					ctx.fillStyle = "#1e293b";
-					ctx.font =
-						'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-					const textWidth = ctx.measureText(bar.name).width;
-					if (textWidth < width - 10) {
-						ctx.fillText(bar.name, (xStart + xEnd) / 2, y);
-					}
-				});
-
-				ctx.fillStyle = "#64748b";
-				ctx.font =
-					'10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-				ctx.textAlign = "right";
-				ctx.textBaseline = "bottom";
-				ctx.fillText(
-					"© 2025 Georgios Hoplaros, PhD",
-					chart.width - 10,
-					chart.height - 5
-				);
-
-				ctx.restore();
-			},
-		};
 
 		document.getElementById("showGraph").addEventListener("click", () => {
 			if (!player.duration || isNaN(player.duration)) {
-				alert("Please load a video/audio file and wait for metadata.");
+				alert("Please load a video/audio file first.");
 				return;
 			}
 
@@ -435,170 +438,201 @@ if (checkExpiration()) {
 			const labels = allEvents.length
 				? allEvents.map((e) => e.name)
 				: ["No Observations"];
-			const datasets = [];
-			graphBars = [];
-			ecPoints = [];
 
-			allEvents.forEach((ev) => {
+			const canvasElement = document.getElementById("observationChart");
+			canvasElement.style.display = "block";
+			canvasElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+			const ctx = canvasElement.getContext("2d");
+
+			if (window.observationChartInstance) {
+				window.observationChartInstance.destroy();
+			}
+
+			const datasets = [];
+			allEvents.forEach((ev, idx) => {
+				const data = Array(labels.length).fill(null);
 				if (ev.type === "EC") {
 					const times = (ev.input.value || "")
 						.split(",")
 						.map((v) => parseFloat(v))
 						.filter((v) => Number.isFinite(v));
-					times.forEach((t) => ecPoints.push({ time: t, name: ev.name }));
-					if (times.length) {
-						datasets.push({
-							label: ev.name,
-							parsing: false,
-							data: times.map((t) => ({ x: t, y: ev.name })),
-							backgroundColor: "#3b82f6",
-							borderColor: "#1d4ed8",
-							pointRadius: 6,
-							pointHoverRadius: 8,
-							showLine: false,
-						});
-					}
+					times.forEach((t) => {
+						data[idx] = (data[idx] || 0) + 1;
+					});
+					datasets.push({
+						label: ev.name + " (Count)",
+						data: data,
+						backgroundColor: "rgba(59, 130, 246, 0.6)",
+						borderColor: "rgba(37, 99, 235, 1)",
+						borderWidth: 2,
+						type: "bar",
+					});
 				} else if (ev.type === "DE") {
 					const pairs = (ev.input.value || "")
 						.split(",")
 						.map((s) => s.trim())
 						.filter(Boolean)
 						.filter((s) => !s.endsWith("..."));
+					let totalDuration = 0;
 					pairs.forEach((p) => {
 						const [s, e] = p.split("-").map(Number);
 						if (Number.isFinite(s) && Number.isFinite(e))
-							graphBars.push({ start: s, end: e, name: ev.name });
+							totalDuration += e - s;
+					});
+					data[idx] = totalDuration;
+					datasets.push({
+						label: ev.name + " (Total Duration)",
+						data: data,
+						backgroundColor: "rgba(239, 68, 68, 0.6)",
+						borderColor: "rgba(220, 38, 38, 1)",
+						borderWidth: 2,
+						type: "bar",
 					});
 				}
 			});
 
-			if (datasets.length === 0) {
-				datasets.push({
-					label: "placeholder",
-					parsing: false,
-					data: [{ x: 0, y: labels[0] }],
-					pointRadius: 0,
-					showLine: false,
-				});
-			}
-
-			const ctx = canvas.getContext("2d");
-			if (
-				window.observationChart &&
-				typeof window.observationChart.destroy === "function"
-			) {
-				window.observationChart.destroy();
-			}
-
-			canvas.style.display = "block";
-
-			window.observationChart = new Chart(ctx, {
-				type: "scatter",
-				data: { datasets },
+			window.observationChartInstance = new Chart(ctx, {
+				type: "bar",
+				data: {
+					labels: labels,
+					datasets: datasets,
+				},
 				options: {
-					responsive: false,
+					responsive: true,
+					maintainAspectRatio: true,
 					plugins: {
-						legend: { display: false },
+						title: {
+							display: true,
+							text: `Behavioral Observation Summary (Duration: ${Math.floor(
+								durationSec / 60
+							)}:${String(Math.floor(durationSec % 60)).padStart(2, "0")})`,
+							font: { size: 18, weight: "bold" },
+						},
+						legend: {
+							display: true,
+							position: "top",
+						},
 						tooltip: {
-							backgroundColor: "rgba(0, 0, 0, 0.8)",
-							titleColor: "#ffffff",
-							bodyColor: "#ffffff",
-							borderColor: "#3b82f6",
-							borderWidth: 1,
+							callbacks: {
+								label: function (context) {
+									const label = context.dataset.label || "";
+									const value = context.parsed.y || 0;
+									if (label.includes("Count")) {
+										return `${label}: ${value} event(s)`;
+									} else if (label.includes("Duration")) {
+										return `${label}: ${value.toFixed(2)}s`;
+									}
+									return `${label}: ${value}`;
+								},
+							},
 						},
 					},
 					scales: {
-						x: {
-							type: "linear",
-							min: 0,
-							max: durationSec,
-							ticks: {
-								callback: (v) =>
-									`${Math.floor(v / 60)}:${String(Math.floor(v % 60)).padStart(
-										2,
-										"0"
-									)}`,
-								color: "#64748b",
-							},
+						y: {
+							beginAtZero: true,
 							title: {
 								display: true,
-								text: "Time (min:sec)",
-								color: "#1e293b",
-								font: { weight: "bold" },
-							},
-							grid: {
-								color: "#e2e8f0",
+								text: "Count / Duration (seconds)",
+								font: { size: 14 },
 							},
 						},
-						y: {
-							type: "category",
-							labels,
+						x: {
 							title: {
 								display: true,
-								text: "Observations",
-								color: "#1e293b",
-								font: { weight: "bold" },
-							},
-							grid: {
-								color: "#e2e8f0",
-							},
-							ticks: {
-								color: "#64748b",
+								text: "Observation Events",
+								font: { size: 14 },
 							},
 						},
 					},
 				},
-				plugins: [durationBarsPlugin],
 			});
+
+			updateStatus("ready", "Chart displayed");
 		});
 
-		document.getElementById("saveData").addEventListener("click", () => {
-			const data = allEvents.map((ev) => ({
-				name: ev.name,
-				type: ev.type,
-				key: ev.key,
-				values: ev.input.value,
-			}));
-			const blob = new Blob([JSON.stringify({ events: data }, null, 2)], {
+		document.getElementById("saveData").addEventListener("click", async () => {
+			const userId = getCurrentUserId();
+			if (!userId) {
+				alert("You must be logged in to save data.");
+				return;
+			}
+
+			const sessionData = {
+				user_id: userId,
+				events: allEvents.map((e) => ({
+					name: e.name,
+					key: e.key,
+					type: e.type,
+					values: e.input.value,
+				})),
+				videoDuration: player.duration || 0,
+				timestamp: new Date().toISOString(),
+			};
+
+			try {
+				// Save to Supabase database
+				const { data, error } = await supabaseClient
+					.from("observation_sessions")
+					.insert({
+						user_id: userId,
+						session_data: sessionData,
+						video_duration: player.duration || 0,
+					})
+					.select();
+
+				if (error) throw error;
+
+				alert("Data saved to your account successfully!");
+				console.log("Saved session:", data);
+			} catch (error) {
+				console.error("Save error:", error);
+				alert("Error saving data: " + error.message);
+			}
+
+			// Also download as JSON backup
+			const blob = new Blob([JSON.stringify(sessionData, null, 2)], {
 				type: "application/json",
 			});
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.href = url;
-			a.download = `observation_data_${
+			a.download = `beacon_session_${
 				new Date().toISOString().split("T")[0]
 			}.json`;
 			a.click();
 			URL.revokeObjectURL(url);
-			updateStatus("ready", "Data saved successfully");
 		});
 
 		document.getElementById("loadData").addEventListener("click", () => {
-			const inp = document.createElement("input");
-			inp.type = "file";
-			inp.accept = "application/json";
-			inp.onchange = (e) => {
+			const input = document.createElement("input");
+			input.type = "file";
+			input.accept = ".json";
+			input.addEventListener("change", (e) => {
 				const file = e.target.files[0];
-				if (!file) return;
-				const reader = new FileReader();
-				reader.onload = () => {
-					try {
-						const parsed = JSON.parse(reader.result);
-						eventsContainer.innerHTML = "";
-						allEvents = [];
-						keyBindings = {};
-						activeDurations = {};
-						(parsed.events || []).forEach((ev) => {
-							createEventRow(ev.name, ev.key, ev.type, ev.values || "");
-						});
-						updateStatus("ready", "Data loaded successfully");
-					} catch {
-						alert("Invalid JSON file.");
-					}
-				};
-				reader.readAsText(file);
-			};
-			inp.click();
+				if (file) {
+					const reader = new FileReader();
+					reader.onload = (evt) => {
+						try {
+							const data = JSON.parse(evt.target.result);
+							eventsContainer.innerHTML = "";
+							allEvents = [];
+							keyBindings = {};
+							activeDurations = {};
+
+							data.events.forEach((e) => {
+								createEventRow(e.name, e.key, e.type, e.values);
+							});
+
+							alert("Data loaded successfully!");
+						} catch (err) {
+							alert("Error loading file: " + err.message);
+						}
+					};
+					reader.readAsText(file);
+				}
+			});
+			input.click();
 		});
 
 		document.getElementById("analysisBtn").addEventListener("click", () => {
@@ -607,131 +641,122 @@ if (checkExpiration()) {
 				return;
 			}
 
-			const durationSec = player.duration;
-			let html =
-				'<div class="section-title">📈 Observation Data Analysis</div>';
-			html +=
-				"<table><tr><th>Event Name</th><th>Type</th><th>Total Count</th><th>Total Duration (s)</th><th>Mean Duration (s)</th><th>% of Total Time</th><th>Rate per Minute</th></tr>";
+			analysisContainer.style.display = "block";
+			analysisContainer.scrollIntoView({
+				behavior: "smooth",
+				block: "start",
+			});
 
-			const rows = [];
-			let totalEvents = 0;
-
+			const stats = [];
 			allEvents.forEach((ev) => {
-				const name = ev.name;
-				const type = ev.type;
-
-				if (type === "EC") {
+				if (ev.type === "EC") {
 					const times = (ev.input.value || "")
 						.split(",")
-						.map((v) => v.trim())
-						.filter(Boolean);
+						.map((v) => parseFloat(v))
+						.filter((v) => Number.isFinite(v));
 					const count = times.length;
-					totalEvents += count;
-					const rate =
-						durationSec > 0 ? ((count / durationSec) * 60).toFixed(2) : "0.00";
-					rows.push([name, "Event Count", count, "-", "-", "-", rate]);
-				} else {
+					const rate = count / (player.duration / 60);
+					stats.push({
+						name: ev.name,
+						type: "Event Count",
+						count: count,
+						rate: rate.toFixed(2) + " per minute",
+						details: times.map((t) => fmt(t) + "s").join(", "),
+					});
+				} else if (ev.type === "DE") {
 					const pairs = (ev.input.value || "")
 						.split(",")
 						.map((s) => s.trim())
 						.filter(Boolean)
 						.filter((s) => !s.endsWith("..."));
-					let totalDur = 0;
+					let totalDuration = 0;
+					let count = 0;
+					const durations = [];
 					pairs.forEach((p) => {
 						const [s, e] = p.split("-").map(Number);
-						if (Number.isFinite(s) && Number.isFinite(e)) totalDur += e - s;
+						if (Number.isFinite(s) && Number.isFinite(e)) {
+							const d = e - s;
+							totalDuration += d;
+							count++;
+							durations.push(d);
+						}
 					});
-					const count = pairs.length;
-					totalEvents += count;
-					const meanDur = count > 0 ? totalDur / count : 0;
-					const perc = totalDur > 0 ? (totalDur / durationSec) * 100 : 0;
-					const rate =
-						durationSec > 0 ? ((count / durationSec) * 60).toFixed(2) : "0.00";
-					rows.push([
-						name,
-						"Duration",
-						count,
-						totalDur.toFixed(2),
-						meanDur.toFixed(2),
-						perc.toFixed(2) + "%",
-						rate,
-					]);
+					const avgDuration = count > 0 ? totalDuration / count : 0;
+					const percentage = (totalDuration / player.duration) * 100;
+					stats.push({
+						name: ev.name,
+						type: "Duration Event",
+						count: count,
+						totalDuration: totalDuration.toFixed(2) + "s",
+						avgDuration: avgDuration.toFixed(2) + "s",
+						percentage: percentage.toFixed(1) + "%",
+						details: durations.map((d) => d.toFixed(2) + "s").join(", "),
+					});
 				}
 			});
 
-			rows.forEach((r) => {
-				html += `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`;
-			});
-			html += "</table>";
-
-			html +=
-				'<div style="margin-top: 24px; padding: 20px; background: var(--bg-primary); border-radius: 8px; border-left: 4px solid var(--primary-color);">';
-			html +=
-				'<h3 style="margin: 0 0 12px 0; color: var(--primary-color);">📊 Summary Statistics</h3>';
-			html += `<p><strong>Total Media Duration:</strong> ${Math.floor(
-				durationSec / 60
-			)}:${String(Math.floor(durationSec % 60)).padStart(
+			let html = `
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin-top: 0; color: var(--text-primary); font-size: 1.5rem;">📊 Detailed Analysis</h3>
+          <p style="color: var(--text-secondary);">Session Duration: <strong>${Math.floor(
+						player.duration / 60
+					)}:${String(Math.floor(player.duration % 60)).padStart(
 				2,
 				"0"
-			)} (${durationSec.toFixed(1)}s)</p>`;
-			html += `<p><strong>Total Events Recorded:</strong> ${totalEvents}</p>`;
-			html += `<p><strong>Event Types Configured:</strong> ${allEvents.length}</p>`;
-			html += `<p><strong>Overall Event Rate:</strong> ${
-				durationSec > 0 ? ((totalEvents / durationSec) * 60).toFixed(2) : "0.00"
-			} events per minute</p>`;
-			html += "</div>";
+			)}</strong></p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Event Name</th>
+              <th>Type</th>
+              <th>Count</th>
+              <th>Metrics</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
 
-			html += '<div style="margin-top: 16px; display: flex; gap: 12px;">';
-			html +=
-				'<button id="exportCSV" class="btn btn-success">📊 Export CSV</button>';
-			html +=
-				'<button id="exportDetailedCSV" class="btn btn-warning">📋 Export Detailed CSV</button>';
-			html += "</div>";
+			stats.forEach((s) => {
+				const metrics =
+					s.type === "Event Count"
+						? `Rate: ${s.rate}`
+						: `Total: ${s.totalDuration}<br>Avg: ${s.avgDuration}<br>% of Session: ${s.percentage}`;
+				html += `
+          <tr>
+            <td><strong>${s.name}</strong></td>
+            <td>${s.type}</td>
+            <td>${s.count}</td>
+            <td>${metrics}</td>
+            <td style="font-size: 0.85rem; color: var(--text-secondary);">${
+							s.details || "N/A"
+						}</td>
+          </tr>
+        `;
+			});
 
-			html +=
-				'<div style="text-align: center; margin-top: 20px; padding: 10px; color: var(--text-secondary); font-size: 0.75rem; border-top: 1px solid var(--border-color);">&copy; 2025 Georgios Hoplaros, PhD</div>';
+			html += `
+          </tbody>
+        </table>
+        <div style="margin-top: 20px; text-align: center;">
+          <button onclick="exportDetailedCSV()" class="btn btn-success">📥 Export Detailed CSV</button>
+        </div>
+      `;
 
 			analysisContainer.innerHTML = html;
-			analysisContainer.style.display = "block";
 
-			document.getElementById("exportCSV").onclick = () => {
-				const csvRows = [
-					[
-						"Event Name",
-						"Type",
-						"Total Count",
-						"Total Duration (s)",
-						"Mean Duration (s)",
-						"% of Total Time",
-						"Rate per Minute",
-					],
-				];
-				rows.forEach((r) => csvRows.push(r));
-				const csvContent = csvRows
-					.map((row) => row.map((cell) => `"${cell}"`).join(","))
-					.join("\n");
-				const blob = new Blob(["\uFEFF" + csvContent], {
-					type: "text/csv;charset=utf-8;",
-				});
-				const url = URL.createObjectURL(blob);
-				const a = document.createElement("a");
-				a.href = url;
-				a.download = `observation_analysis_${
-					new Date().toISOString().split("T")[0]
-				}.csv`;
-				a.click();
-				URL.revokeObjectURL(url);
-			};
-
-			document.getElementById("exportDetailedCSV").onclick = () => {
+			window.exportDetailedCSV = () => {
 				const detailedRows = [
 					[
 						"Event Name",
-						"Type",
-						"Timestamp (s)",
-						"Duration (s)",
-						"Start Time (s)",
-						"End Time (s)",
+						"Event Type",
+						"Count/Occurrences",
+						"Total Duration (s)",
+						"Avg Duration (s)",
+						"% of Session",
+						"Rate (per min)",
+						"Individual Times/Durations",
 					],
 				];
 
@@ -741,30 +766,102 @@ if (checkExpiration()) {
 							.split(",")
 							.map((v) => parseFloat(v))
 							.filter((v) => Number.isFinite(v));
-						times.forEach((t) => {
-							detailedRows.push([
-								ev.name,
-								"Event Count",
-								t.toFixed(2),
-								"-",
-								"-",
-								"-",
-							]);
-						});
-					} else {
+						const count = times.length;
+						const rate = count / (player.duration / 60);
+						detailedRows.push([
+							ev.name,
+							"Event Count",
+							count,
+							"N/A",
+							"N/A",
+							"N/A",
+							rate.toFixed(2),
+							times.map((t) => t.toFixed(2)).join("; "),
+						]);
+					} else if (ev.type === "DE") {
 						const pairs = (ev.input.value || "")
 							.split(",")
 							.map((s) => s.trim())
 							.filter(Boolean)
 							.filter((s) => !s.endsWith("..."));
+						let totalDuration = 0;
+						let count = 0;
+						const durationsDetail = [];
 						pairs.forEach((p) => {
-							const [start, end] = p.split("-").map(Number);
-							if (Number.isFinite(start) && Number.isFinite(end)) {
-								const duration = end - start;
+							const [s, e] = p.split("-").map(Number);
+							if (Number.isFinite(s) && Number.isFinite(e)) {
+								const duration = e - s;
+								totalDuration += duration;
+								count++;
+								const start = s;
+								const end = e;
+								durationsDetail.push([
+									duration.toFixed(2),
+									start.toFixed(2),
+									end.toFixed(2),
+								]);
+							}
+						});
+						const avgDuration = count > 0 ? totalDuration / count : 0;
+						const percentage = (totalDuration / player.duration) * 100;
+						detailedRows.push([
+							ev.name,
+							"Duration",
+							count,
+							totalDuration.toFixed(2),
+							avgDuration.toFixed(2),
+							percentage.toFixed(1),
+							"N/A",
+							durationsDetail
+								.map(([dur, start, end]) => `${dur}s (${start}s-${end}s)`)
+								.join("; "),
+						]);
+					}
+				});
+
+				detailedRows.push([]);
+				detailedRows.push(["Detailed Event Log"]);
+				detailedRows.push([
+					"Event Name",
+					"Type",
+					"Occurrence #",
+					"Duration (s)",
+					"Start Time (s)",
+					"End Time (s)",
+				]);
+
+				allEvents.forEach((ev) => {
+					if (ev.type === "EC") {
+						const times = (ev.input.value || "")
+							.split(",")
+							.map((v) => parseFloat(v))
+							.filter((v) => Number.isFinite(v));
+						times.forEach((t, idx) => {
+							detailedRows.push([
+								ev.name,
+								"Event Count",
+								idx + 1,
+								"N/A",
+								t.toFixed(2),
+								"N/A",
+							]);
+						});
+					} else if (ev.type === "DE") {
+						const pairs = (ev.input.value || "")
+							.split(",")
+							.map((s) => s.trim())
+							.filter(Boolean)
+							.filter((s) => !s.endsWith("..."));
+						pairs.forEach((p, idx) => {
+							const [s, e] = p.split("-").map(Number);
+							if (Number.isFinite(s) && Number.isFinite(e)) {
+								const duration = e - s;
+								const start = s;
+								const end = e;
 								detailedRows.push([
 									ev.name,
 									"Duration",
-									"-",
+									idx + 1,
 									duration.toFixed(2),
 									start.toFixed(2),
 									end.toFixed(2),
