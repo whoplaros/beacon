@@ -610,6 +610,19 @@ if (checkExpiration()) {
 				return;
 			}
 
+			// Prompt for session name
+			const sessionName = prompt("Enter a name for this session (optional):");
+
+			// Allow user to cancel
+			if (sessionName === null) {
+				return;
+			}
+
+			// Get video filename if one is loaded
+			const fileInput = document.getElementById("fileInput");
+			const videoFileName =
+				fileInput.files && fileInput.files[0] ? fileInput.files[0].name : null;
+
 			const sessionData = {
 				user_id: userId,
 				events: allEvents.map((e) => ({
@@ -620,6 +633,7 @@ if (checkExpiration()) {
 				})),
 				videoDuration: player.duration || 0,
 				timestamp: new Date().toISOString(),
+				videoFileName: videoFileName,
 			};
 
 			try {
@@ -630,6 +644,11 @@ if (checkExpiration()) {
 						user_id: userId,
 						session_data: sessionData,
 						video_duration: player.duration || 0,
+						session_name:
+							sessionName && sessionName.trim() !== ""
+								? sessionName.trim()
+								: null,
+						video_file_name: videoFileName,
 					})
 					.select();
 
@@ -1280,16 +1299,23 @@ async function showSessionsModal() {
 				  ).padStart(2, "0")}`
 				: "N/A";
 			const eventCount = session.session_data?.events?.length || 0;
+			const sessionTitle =
+				session.session_name || `Session ${sessions.length - index}`;
+			const videoFileName =
+				session.video_file_name ||
+				session.session_data?.videoFileName ||
+				"No video file";
 
 			html += `
 				<div class="session-card">
 					<div class="session-card-header">
 						<div>
-							<h3 class="session-card-title">Session ${sessions.length - index}</h3>
+							<h3 class="session-card-title">${sessionTitle}</h3>
 							<div class="session-card-date">${dateStr} at ${timeStr}</div>
 						</div>
 					</div>
 					<div class="session-card-info">
+						<span>🎥 <strong>${videoFileName}</strong></span>
 						<span>📊 <strong>${eventCount}</strong> events tracked</span>
 						<span>⏱️ Duration: <strong>${duration}</strong></span>
 					</div>
@@ -1297,9 +1323,7 @@ async function showSessionsModal() {
 						<button class="btn btn-primary" onclick="loadSessionById('${session.id}')">
 							📂 Load Session
 						</button>
-						<button class="btn btn-secondary" onclick="deleteSession('${
-							session.id
-						}')" style="background: var(--danger-color);">
+						<button class="btn btn-secondary" onclick="deleteSession('${session.id}')" style="background: var(--danger-color);">
 							🗑️ Delete
 						</button>
 					</div>
@@ -1348,16 +1372,32 @@ async function loadSessionById(sessionId) {
 
 		closeSessionsModal();
 
+		// Get video filename if it was stored
+		const videoFileName =
+			session.video_file_name || session.session_data?.videoFileName;
+
 		// Check if a video is loaded
 		const player = document.getElementById("player");
 		if (!player.src || player.src === window.location.href) {
-			alert(
-				"Session loaded successfully!\n\n⚠️ Please load your video file to continue working with this session."
-			);
+			if (videoFileName) {
+				alert(
+					`Session loaded successfully!\n\n⚠️ Please load the video file: ${videoFileName}`
+				);
+			} else {
+				alert(
+					"Session loaded successfully!\n\n⚠️ Please load your video file to continue working with this session."
+				);
+			}
 		} else {
-			alert(
-				"Session loaded successfully!\n\nℹ️ Make sure you have the correct video file loaded for this session."
-			);
+			if (videoFileName) {
+				alert(
+					`Session loaded successfully!\n\nℹ️ This session was recorded with: ${videoFileName}\nMake sure you have the correct video file loaded.`
+				);
+			} else {
+				alert(
+					"Session loaded successfully!\n\nℹ️ Make sure you have the correct video file loaded for this session."
+				);
+			}
 		}
 	} catch (error) {
 		console.error("Error loading session:", error);
