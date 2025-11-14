@@ -144,7 +144,7 @@ async function forgotPassword() {
 
 	try {
 		const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-			redirectTo: `${window.location.origin}/#reset-password`,
+			redirectTo: window.location.origin,
 		});
 
 		if (error) throw error;
@@ -159,13 +159,23 @@ async function forgotPassword() {
 }
 
 // Handle password reset on page load
-document.addEventListener("DOMContentLoaded", () => {
-	// Check if this is a password reset
-	if (
-		window.location.hash === "#reset-password" ||
-		window.location.hash.includes("type=recovery")
-	) {
-		const authContainer = document.getElementById("authContainer");
+window.addEventListener("hashchange", handlePasswordReset);
+window.addEventListener("load", handlePasswordReset);
+
+function handlePasswordReset() {
+	// Check if this is a password reset from Supabase email link
+	const hashParams = new URLSearchParams(window.location.hash.substring(1));
+	const type = hashParams.get("type");
+	const accessToken = hashParams.get("access_token");
+
+	if (type === "recovery" && accessToken) {
+		showPasswordResetForm();
+	}
+}
+
+function showPasswordResetForm() {
+	const authContainer = document.getElementById("authContainer");
+	if (authContainer) {
 		authContainer.innerHTML = `
 			<div class="auth-header">
 				<h1>BEACON</h1>
@@ -180,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			<p id="authMessage" style="font-size: 0.9rem; margin-top: 10px;"></p>
 		`;
 	}
-});
+}
 
 async function resetPassword() {
 	const newPassword = document.getElementById("newPasswordInput").value;
@@ -206,7 +216,7 @@ async function resetPassword() {
 	}
 
 	try {
-		const { error } = await supabaseClient.auth.updateUser({
+		const { data, error } = await supabaseClient.auth.updateUser({
 			password: newPassword,
 		});
 
@@ -216,11 +226,14 @@ async function resetPassword() {
 			"Password updated successfully! Redirecting to login...";
 		authMessage.style.color = "green";
 
-		setTimeout(() => {
+		// Sign out and redirect to login
+		setTimeout(async () => {
+			await supabaseClient.auth.signOut();
 			window.location.href = window.location.origin;
 		}, 2000);
 	} catch (error) {
-		authMessage.textContent = "Error: " + error.message;
+		console.error("Password reset error:", error);
+		authMessage.textContent = "Error updating password: " + error.message;
 		authMessage.style.color = "red";
 	}
 }
