@@ -145,6 +145,7 @@ if (checkExpiration()) {
 		const videoFrame = document.getElementById("videoFrame");
 		const detachBtn = document.getElementById("detachBtn");
 		const detachVideoBtn = document.getElementById("detachVideoBtn");
+		const exportSVGContainer = document.getElementById("exportSVGContainer");
 
 		let allEvents = [];
 		let keyBindings = {};
@@ -431,18 +432,60 @@ if (checkExpiration()) {
 		});
 
 		document.getElementById("showGraph").addEventListener("click", () => {
-			if (!player.duration || isNaN(player.duration)) {
-				alert("Please load a video/audio file first.");
+			// Check if we have any events with data
+			const hasEventData = allEvents.some(
+				(e) => e.input.value && e.input.value.trim() !== ""
+			);
+
+			if (!hasEventData) {
+				alert(
+					"No observation data to display. Please record some observations first."
+				);
 				return;
 			}
 
-			const durationSec = player.duration;
+			// If no video loaded, use the stored video duration from session or set a default
+			let durationSec = player.duration;
+			if (!durationSec || isNaN(durationSec)) {
+				// Try to extract duration from the event data
+				durationSec = 0;
+				allEvents.forEach((ev) => {
+					if (ev.type === "EC") {
+						const times = (ev.input.value || "")
+							.split(",")
+							.map((v) => parseFloat(v))
+							.filter((v) => Number.isFinite(v));
+						if (times.length > 0) {
+							durationSec = Math.max(durationSec, Math.max(...times));
+						}
+					} else if (ev.type === "DE") {
+						const pairs = (ev.input.value || "")
+							.split(",")
+							.map((s) => s.trim())
+							.filter(Boolean)
+							.filter((s) => !s.endsWith("..."));
+						pairs.forEach((p) => {
+							const [s, e] = p.split("-").map(Number);
+							if (Number.isFinite(e)) {
+								durationSec = Math.max(durationSec, e);
+							}
+						});
+					}
+				});
+
+				if (durationSec === 0) {
+					alert(
+						"Cannot determine video duration. Please load a video file or record observations with timestamps."
+					);
+					return;
+				}
+			}
+
 			const labels = allEvents.length
 				? allEvents.map((e) => e.name)
 				: ["No Observations"];
 
 			const canvasElement = document.getElementById("observationChart");
-			const exportSVGContainer = document.getElementById("exportSVGContainer");
 			canvasElement.style.display = "block";
 			exportSVGContainer.style.display = "block";
 			canvasElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -631,7 +674,7 @@ if (checkExpiration()) {
 			canvas.style.display = "none";
 			analysisContainer.style.display = "none";
 			analysisContainer.innerHTML = "";
-			document.getElementById("exportSVGContainer").style.display = "none";
+			exportSVGContainer.style.display = "none";
 
 			if (window.observationChartInstance) {
 				window.observationChartInstance.destroy();
@@ -641,9 +684,50 @@ if (checkExpiration()) {
 		});
 
 		document.getElementById("analysisBtn").addEventListener("click", () => {
-			if (!player.duration || isNaN(player.duration)) {
-				alert("Please load a video/audio file first.");
+			// Check if we have any events with data
+			const hasEventData = allEvents.some(
+				(e) => e.input.value && e.input.value.trim() !== ""
+			);
+
+			if (!hasEventData) {
+				alert(
+					"No observation data to analyze. Please record some observations first."
+				);
 				return;
+			}
+
+			// If no video loaded, use the stored video duration from session or extract from data
+			let durationSec = player.duration;
+			if (!durationSec || isNaN(durationSec)) {
+				// Try to extract duration from the event data
+				durationSec = 0;
+				allEvents.forEach((ev) => {
+					if (ev.type === "EC") {
+						const times = (ev.input.value || "")
+							.split(",")
+							.map((v) => parseFloat(v))
+							.filter((v) => Number.isFinite(v));
+						if (times.length > 0) {
+							durationSec = Math.max(durationSec, Math.max(...times));
+						}
+					} else if (ev.type === "DE") {
+						const pairs = (ev.input.value || "")
+							.split(",")
+							.map((s) => s.trim())
+							.filter(Boolean)
+							.filter((s) => !s.endsWith("..."));
+						pairs.forEach((p) => {
+							const [s, e] = p.split("-").map(Number);
+							if (Number.isFinite(e)) {
+								durationSec = Math.max(durationSec, e);
+							}
+						});
+					}
+				});
+
+				if (durationSec === 0) {
+					durationSec = 60; // Default to 1 minute if we can't determine
+				}
 			}
 
 			analysisContainer.style.display = "block";
@@ -660,7 +744,7 @@ if (checkExpiration()) {
 						.map((v) => parseFloat(v))
 						.filter((v) => Number.isFinite(v));
 					const count = times.length;
-					const rate = count / (player.duration / 60);
+					const rate = count / (durationSec / 60);
 					stats.push({
 						name: ev.name,
 						type: "Event Count",
@@ -687,7 +771,7 @@ if (checkExpiration()) {
 						}
 					});
 					const avgDuration = count > 0 ? totalDuration / count : 0;
-					const percentage = (totalDuration / player.duration) * 100;
+					const percentage = (totalDuration / durationSec) * 100;
 					stats.push({
 						name: ev.name,
 						type: "Duration Event",
@@ -704,8 +788,8 @@ if (checkExpiration()) {
         <div style="margin-bottom: 20px;">
           <h3 style="margin-top: 0; color: var(--text-primary); font-size: 1.5rem;">📊 Detailed Analysis</h3>
           <p style="color: var(--text-secondary);">Session Duration: <strong>${Math.floor(
-						player.duration / 60
-					)}:${String(Math.floor(player.duration % 60)).padStart(
+						durationSec / 60
+					)}:${String(Math.floor(durationSec % 60)).padStart(
 				2,
 				"0"
 			)}</strong></p>
@@ -772,7 +856,7 @@ if (checkExpiration()) {
 							.map((v) => parseFloat(v))
 							.filter((v) => Number.isFinite(v));
 						const count = times.length;
-						const rate = count / (player.duration / 60);
+						const rate = count / (durationSec / 60);
 						detailedRows.push([
 							ev.name,
 							"Event Count",
@@ -808,7 +892,7 @@ if (checkExpiration()) {
 							}
 						});
 						const avgDuration = count > 0 ? totalDuration / count : 0;
-						const percentage = (totalDuration / player.duration) * 100;
+						const percentage = (totalDuration / durationSec) * 100;
 						detailedRows.push([
 							ev.name,
 							"Duration",
@@ -894,12 +978,51 @@ if (checkExpiration()) {
 		});
 
 		document.getElementById("exportSVG").addEventListener("click", () => {
-			if (!player.duration || isNaN(player.duration)) {
-				alert("Please load a video/audio file first.");
+			// Check if we have any events with data
+			const hasEventData = allEvents.some(
+				(e) => e.input.value && e.input.value.trim() !== ""
+			);
+
+			if (!hasEventData) {
+				alert(
+					"No observation data to export. Please record some observations first."
+				);
 				return;
 			}
 
-			const durationSec = player.duration;
+			// If no video loaded, extract duration from the event data
+			let durationSec = player.duration;
+			if (!durationSec || isNaN(durationSec)) {
+				durationSec = 0;
+				allEvents.forEach((ev) => {
+					if (ev.type === "EC") {
+						const times = (ev.input.value || "")
+							.split(",")
+							.map((v) => parseFloat(v))
+							.filter((v) => Number.isFinite(v));
+						if (times.length > 0) {
+							durationSec = Math.max(durationSec, Math.max(...times));
+						}
+					} else if (ev.type === "DE") {
+						const pairs = (ev.input.value || "")
+							.split(",")
+							.map((s) => s.trim())
+							.filter(Boolean)
+							.filter((s) => !s.endsWith("..."));
+						pairs.forEach((p) => {
+							const [s, e] = p.split("-").map(Number);
+							if (Number.isFinite(e)) {
+								durationSec = Math.max(durationSec, e);
+							}
+						});
+					}
+				});
+
+				if (durationSec === 0) {
+					alert("Cannot determine video duration from observation data.");
+					return;
+				}
+			}
 			const labels = allEvents.length
 				? allEvents.map((e) => e.name)
 				: ["No Observations"];

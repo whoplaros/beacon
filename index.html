@@ -50,6 +50,10 @@
 				<p style="font-size: 0.7rem; opacity: 0.7; margin-top: 10px">
 					&copy; 2025 Georgios Hoplaros, PhD
 				</p>
+				<div
+					id="logoutBtnContainer"
+					style="position: absolute; top: 20px; right: 20px"
+				></div>
 			</div>
 
 			<div class="content">
@@ -123,28 +127,30 @@
 						<button id="createEC" class="btn btn-primary">
 							➕ Create Event Count
 						</button>
-						<button id="createDE" class="btn btn-secondary">
+						<button
+							id="createDE"
+							class="btn"
+							style="background: #60a5fa; color: white"
+						>
 							⏱️ Create Duration Event
 						</button>
-
 						<button id="showGraph" class="btn btn-success">
 							📊 Show Observation Graph
 						</button>
-
-						<button id="analysisBtn" class="btn btn-primary">
-							📈 Show Data Analysis
+						<button
+							id="analysisBtn"
+							class="btn"
+							style="background: #6ee7b7; color: #065f46"
+						>
+							📈 Data Analysis
 						</button>
 						<button id="saveData" class="btn btn-secondary">
 							💾 Save Data
 						</button>
-						<button
-							id="clearSession"
-							class="btn btn-secondary"
-							style="background: var(--warning-color)"
-						>
+						<button id="clearSession" class="btn btn-secondary">
 							🔄 Clear Session
 						</button>
-						<button id="mySessions" class="btn btn-primary">
+						<button id="mySessions" class="btn btn-warning">
 							📋 My Sessions
 						</button>
 					</div>
