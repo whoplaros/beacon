@@ -31,6 +31,34 @@ body {
 	color: var(--text-primary);
 	min-height: 100vh;
 }
+.auth-container {
+	max-width: 400px;
+	margin: 60px auto;
+	padding: 20px;
+	border: 1px solid #ddd;
+	border-radius: 10px;
+	background: #f9f9f9;
+	text-align: center;
+}
+
+.auth-container input {
+	width: 90%;
+	padding: 10px;
+	margin: 8px 0;
+	font-size: 1rem;
+}
+
+.auth-buttons button {
+	padding: 10px 20px;
+	margin: 8px;
+	font-size: 1rem;
+	cursor: pointer;
+}
+
+/* Hide app until user is logged in */
+.container {
+	display: none;
+}
 
 .container {
 	max-width: 1400px;
