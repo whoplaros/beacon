@@ -19,10 +19,16 @@
 			<h2>Login to BEACON</h2>
 			<input type="email" id="emailInput" placeholder="Email" />
 			<input type="password" id="passwordInput" placeholder="Password" />
+			<input
+				type="text"
+				id="inviteCodeInput"
+				placeholder="Invite Code (required for signup)"
+				style="display: none"
+			/>
 
 			<div class="auth-buttons">
 				<button onclick="logIn()">Log In</button>
-				<button onclick="signUp()">Sign Up</button>
+				<button onclick="toggleSignUpMode()">Sign Up</button>
 			</div>
 
 			<p id="authMessage" style="font-size: 0.9rem; margin-top: 10px"></p>

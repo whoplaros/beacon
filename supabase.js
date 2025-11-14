@@ -34,13 +34,51 @@ document.addEventListener("DOMContentLoaded", async () => {
 	});
 });
 
+// Valid invite codes - change these to whatever you want!
+const VALID_INVITE_CODES = ["BEACON2025", "RESEARCH2025", "EDUCATOR2025"];
+
+let isSignUpMode = false;
+
+function toggleSignUpMode() {
+	isSignUpMode = !isSignUpMode;
+	const inviteCodeInput = document.getElementById("inviteCodeInput");
+	const signUpBtn = document.querySelector(".auth-buttons button:last-child");
+
+	if (isSignUpMode) {
+		inviteCodeInput.style.display = "block";
+		signUpBtn.textContent = "Create Account";
+		signUpBtn.onclick = signUp;
+	} else {
+		inviteCodeInput.style.display = "none";
+		inviteCodeInput.value = "";
+		signUpBtn.textContent = "Sign Up";
+		signUpBtn.onclick = toggleSignUpMode;
+	}
+}
+
 async function signUp() {
 	const email = document.getElementById("emailInput").value;
 	const password = document.getElementById("passwordInput").value;
+	const inviteCode = document.getElementById("inviteCodeInput").value;
 	const authMessage = document.getElementById("authMessage");
 
 	if (!email || !password) {
 		authMessage.textContent = "Please enter both email and password.";
+		authMessage.style.color = "red";
+		return;
+	}
+
+	// Validate invite code
+	if (!inviteCode) {
+		authMessage.textContent = "Please enter an invite code.";
+		authMessage.style.color = "red";
+		return;
+	}
+
+	if (!VALID_INVITE_CODES.includes(inviteCode.trim().toUpperCase())) {
+		authMessage.textContent =
+			"Invalid invite code. Please contact the administrator.";
+		authMessage.style.color = "red";
 		return;
 	}
 
@@ -53,8 +91,12 @@ async function signUp() {
 		authMessage.textContent = error.message;
 		authMessage.style.color = "red";
 	} else {
-		authMessage.textContent = "Check your email to confirm your account.";
+		authMessage.textContent =
+			"Account created! Check your email to confirm your account.";
 		authMessage.style.color = "green";
+		// Reset form
+		document.getElementById("inviteCodeInput").value = "";
+		toggleSignUpMode();
 	}
 }
 
