@@ -136,17 +136,17 @@ function showApp() {
 	document.getElementById("authContainer").style.display = "none";
 	document.querySelector(".container").style.display = "block";
 
-	// Add logout button at the top
+	// Add logout button in the header
 	let logoutBtn = document.getElementById("logoutBtn");
+	const logoutContainer = document.getElementById("logoutBtnContainer");
+
 	if (!logoutBtn) {
 		logoutBtn = document.createElement("button");
 		logoutBtn.id = "logoutBtn";
-		logoutBtn.className = "btn btn-secondary";
-		logoutBtn.style.cssText =
-			"position: fixed; top: 10px; right: 10px; z-index: 9999;";
+		logoutBtn.className = "header-logout-btn";
 		logoutBtn.innerHTML = "🚪 Log Out";
 		logoutBtn.onclick = logOut;
-		document.body.appendChild(logoutBtn);
+		logoutContainer.appendChild(logoutBtn);
 	}
 
 	// Add email tooltip that appears on hover
@@ -156,9 +156,9 @@ function showApp() {
 			userTooltip = document.createElement("div");
 			userTooltip.id = "userTooltip";
 			userTooltip.style.cssText = `
-				position: fixed; 
-				top: 50px; 
-				right: 10px; 
+				position: absolute; 
+				top: 60px; 
+				right: 20px; 
 				z-index: 9998; 
 				background: white; 
 				padding: 8px 12px; 
@@ -173,7 +173,7 @@ function showApp() {
 				white-space: nowrap;
 			`;
 			userTooltip.textContent = `Logged in as: ${currentUser.email}`;
-			document.body.appendChild(userTooltip);
+			logoutContainer.appendChild(userTooltip);
 
 			// Show tooltip on logout button hover
 			logoutBtn.addEventListener("mouseenter", () => {
