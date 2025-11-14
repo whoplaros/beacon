@@ -41,16 +41,16 @@ let isSignUpMode = false;
 
 function toggleSignUpMode() {
 	isSignUpMode = !isSignUpMode;
-	const inviteCodeInput = document.getElementById("inviteCodeInput");
+	const inviteCodeContainer = document.getElementById("inviteCodeContainer");
 	const signUpBtn = document.querySelector(".auth-buttons button:last-child");
 
 	if (isSignUpMode) {
-		inviteCodeInput.style.display = "block";
+		inviteCodeContainer.style.display = "block";
 		signUpBtn.textContent = "Create Account";
 		signUpBtn.onclick = signUp;
 	} else {
-		inviteCodeInput.style.display = "none";
-		inviteCodeInput.value = "";
+		inviteCodeContainer.style.display = "none";
+		document.getElementById("inviteCodeInput").value = "";
 		signUpBtn.textContent = "Sign Up";
 		signUpBtn.onclick = toggleSignUpMode;
 	}
@@ -130,6 +130,36 @@ async function logOut() {
 	await supabaseClient.auth.signOut();
 	currentUser = null;
 	location.reload();
+}
+
+async function forgotPassword() {
+	const email = document.getElementById("emailInput").value;
+	const authMessage = document.getElementById("authMessage");
+
+	if (!email) {
+		authMessage.textContent = "Please enter your email address first.";
+		authMessage.style.color = "red";
+		return;
+	}
+
+	// Confirm with user
+	if (!confirm(`Send password reset email to ${email}?`)) {
+		return;
+	}
+
+	try {
+		const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+			redirectTo: window.location.origin,
+		});
+
+		if (error) throw error;
+
+		authMessage.textContent = "Password reset email sent! Check your inbox.";
+		authMessage.style.color = "green";
+	} catch (error) {
+		authMessage.textContent = "Error: " + error.message;
+		authMessage.style.color = "red";
+	}
 }
 
 function showApp() {

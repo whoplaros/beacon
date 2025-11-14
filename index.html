@@ -19,16 +19,46 @@
 			<h2>Login to BEACON</h2>
 			<input type="email" id="emailInput" placeholder="Email" />
 			<input type="password" id="passwordInput" placeholder="Password" />
-			<input
-				type="text"
-				id="inviteCodeInput"
-				placeholder="Invite Code (required for signup)"
-				style="display: none"
-			/>
+			<div id="inviteCodeContainer" style="display: none">
+				<input
+					type="text"
+					id="inviteCodeInput"
+					placeholder="Invite Code (required for signup)"
+				/>
+				<p
+					style="
+						font-size: 0.85rem;
+						color: var(--text-secondary);
+						margin: 8px 0 0 0;
+						text-align: center;
+					"
+				>
+					Don't have an invite code?
+					<a
+						href="mailto:georgehoplaros@gmail.com?subject=BEACON Access Request"
+						style="color: var(--primary-color); text-decoration: none"
+						>Request access</a
+					>
+				</p>
+			</div>
 
 			<div class="auth-buttons">
 				<button onclick="logIn()">Log In</button>
 				<button onclick="toggleSignUpMode()">Sign Up</button>
+			</div>
+
+			<div style="text-align: center; margin-top: 16px">
+				<a
+					href="#"
+					onclick="forgotPassword(); return false;"
+					style="
+						color: var(--primary-color);
+						text-decoration: none;
+						font-size: 0.9rem;
+					"
+				>
+					Forgot Password?
+				</a>
 			</div>
 
 			<p id="authMessage" style="font-size: 0.9rem; margin-top: 10px"></p>
